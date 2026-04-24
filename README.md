@@ -13,6 +13,10 @@ template/      Copy this as a starting point for a new skill
 
 ## Skill catalog
 
+### API Documentation Skills
+
+Skills that teach agents how to use specific Venice API endpoints.
+
 | Skill | Covers |
 |---|---|
 | [`venice-api-overview`](./skills/venice-api-overview/SKILL.md) | Base URL, auth modes, response headers, pricing model, versioning |
@@ -34,6 +38,14 @@ template/      Copy this as a starting point for a new skill
 | [`venice-crypto-rpc`](./skills/venice-crypto-rpc/SKILL.md) | `/crypto/rpc/*` — JSON-RPC proxy with 1×/2×/4× pricing |
 | [`venice-augment`](./skills/venice-augment/SKILL.md) | `/augment/text-parser`, `/augment/scrape`, `/augment/search` |
 | [`venice-errors`](./skills/venice-errors/SKILL.md) | Error shapes, 402 payment required, 422 content policy, 429 rate limits, retry strategy |
+
+### Generator / Scaffolding Skills
+
+Skills that help agents create new projects using Venice AI.
+
+| Skill | Covers |
+|---|---|
+| [`create-agent-tui`](./skills/create-agent-tui/SKILL.md) | Scaffold complete agent TUI projects in TypeScript — like `create-react-app` for terminal agents |
 
 ## Using these skills
 
