@@ -1,0 +1,33 @@
+{
+  "name": "create-venice-agent-tui",
+  "version": "1.0.0",
+  "description": "Scaffolds a complete agent TUI in TypeScript using Venice AI — like create-react-app for terminal agents. Works with any Venice model (Claude, GPT, Grok, Llama, DeepSeek).",
+  "author": "Venice AI Community",
+  "license": "MIT",
+  "homepage": "https://venice.ai",
+  "repository": "https://github.com/veniceai/skills",
+  "keywords": [
+    "venice",
+    "agent",
+    "tui",
+    "cli",
+    "terminal",
+    "scaffold",
+    "typescript",
+    "claude",
+    "gpt",
+    "grok",
+    "coding-assistant"
+  ],
+  "metadata": {
+    "clawdbot": {
+      "emoji": "🖥️",
+      "requires": {
+        "bins": ["node", "npm"],
+        "env": ["VENICE_API_KEY"]
+      },
+      "primaryEnv": "VENICE_API_KEY",
+      "notes": "Scaffolds agent TUI projects targeting Venice AI. Supports all Venice models."
+    }
+  }
+}
