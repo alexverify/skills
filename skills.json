@@ -18,6 +18,7 @@
     { "id": "venice-audio-transcription", "path": "skills/venice-audio-transcription/SKILL.md" },
     { "id": "venice-video", "path": "skills/venice-video/SKILL.md" },
     { "id": "venice-models", "path": "skills/venice-models/SKILL.md" },
+    { "id": "venice-text-routing", "path": "skills/venice-text-routing/SKILL.md" },
     { "id": "venice-characters", "path": "skills/venice-characters/SKILL.md" },
     { "id": "venice-api-keys", "path": "skills/venice-api-keys/SKILL.md" },
     { "id": "venice-billing", "path": "skills/venice-billing/SKILL.md" },
