@@ -5,7 +5,7 @@ description: High-level map of the Venice.ai API - base URL, authentication mode
 
 # Venice API Overview
 
-Venice.ai is an OpenAI-compatible inference platform for text, image, audio, video, and embeddings. One API — two ways to pay: a traditional **API key** (Pro account), or a **wallet** (x402, USDC on Base, no account required).
+Venice.ai is an OpenAI-compatible inference platform for text, image, audio, video, and embeddings. One API — two ways to pay: a traditional **API key** (Pro account), or a **wallet** (x402, USDC on Base or Solana, no account required).
 
 ## Use when
 
@@ -29,7 +29,7 @@ The OpenAPI spec is distributed at `outerface/swagger.yaml` (current version `20
 | Scheme | Header | Best for |
 |---|---|---|
 | `BearerAuth` | `Authorization: Bearer <VENICE_API_KEY>` | Server-side apps, dashboards, usage analytics, bundled credits |
-| `siwx` (x402) | `X-Sign-In-With-X: <base64 SIWE JSON>` | No account, pay-as-you-go with USDC on Base, serverless / agents |
+| `siwx` (x402) | `SIGN-IN-WITH-X: <base64 SIWX JSON>` | No account, pay-as-you-go with USDC on Base or Solana, serverless / agents |
 
 Every inference endpoint accepts **either** — see [`venice-auth`](../venice-auth/SKILL.md).
 

@@ -163,6 +163,6 @@ Concurrent-call collisions on the per-user mutex also return `429`. Retry with j
 
 - **Multi-chain dashboards** — Single API key unlocks all networks. No per-chain keys to rotate.
 - **High-throughput indexing** — Batch up to 100 calls per request; each sub-call is still billed individually, but the network round-trip is amortized.
-- **Wallet-based (x402) RPC** — Pay per RPC call with USDC on Base. Use the SIWE header; a `402` indicates low credit and carries structured top-up instructions.
+- **Wallet-based (x402) RPC** — Pay per RPC call with USDC on Base or Solana. Use the `SIGN-IN-WITH-X` header; a `402` indicates low credit and carries structured top-up instructions.
 - **Cost tracking** — Log `X-Venice-RPC-Credits` and `X-Venice-RPC-Cost-USD` per request; aggregate by `method` to see where credits go.
 - **Safe transaction submission** — Always include an `Idempotency-Key` on `eth_sendRawTransaction`. The proxy then guarantees exactly-once semantics within 24 hours.

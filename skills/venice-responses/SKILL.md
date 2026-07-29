@@ -28,7 +28,7 @@ Otherwise use [`venice-chat`](../venice-chat/SKILL.md) — it has more features,
 
 ## Authentication
 
-Same as the rest of the API — either `Authorization: Bearer <key>` or `X-Sign-In-With-X: <SIWE>`. See [`venice-auth`](../venice-auth/SKILL.md).
+Same as the rest of the API — either `Authorization: Bearer <key>` or `SIGN-IN-WITH-X: <SIWX>`. See [`venice-auth`](../venice-auth/SKILL.md).
 
 ## Minimal request
 
