@@ -1,6 +1,6 @@
 ---
 name: venice-crypto-rpc
-description: Use Venice as a pay-per-call JSON-RPC proxy to 25 EVM, Starknet, and Solana networks. Covers GET /crypto/rpc/networks, POST /crypto/rpc/{network}, chain families and per-family method allowlists, the 1×/2×/4× method-tier pricing model, per-minute + 24-hour credit rate limits, idempotency keys for safe retries, single vs batch requests, and the unsupported stateful/WebSocket methods (eth_subscribe, eth_newFilter, *Subscribe, etc.).
+description: Use Venice as a pay-per-call JSON-RPC proxy to 27 EVM, Starknet, and Solana networks. Covers GET /crypto/rpc/networks, POST /crypto/rpc/{network}, chain families and per-family method allowlists, the 1×/2×/4× method-tier pricing model, per-minute + 24-hour credit rate limits, idempotency keys for safe retries, single vs batch requests, and the unsupported stateful/WebSocket methods (eth_subscribe, eth_newFilter, *Subscribe, etc.).
 ---
 
 # Venice Crypto RPC (JSON-RPC proxy)
@@ -14,7 +14,7 @@ Venice exposes a **multi-chain JSON-RPC proxy** billed per call. Same request sh
 
 ## Supported networks
 
-Call `GET /crypto/rpc/networks` for the current list. It currently returns 25 slugs (always verify — the catalog grows):
+Call `GET /crypto/rpc/networks` for the current list. It currently returns 27 slugs (always verify — the catalog grows):
 
 ```
 arbitrum-mainnet    arbitrum-sepolia
@@ -33,6 +33,11 @@ zksync-mainnet      zksync-sepolia
 ```
 
 Use the slug as `:network` in the proxy path.
+
+The `network` enum published in `swagger.yaml` currently lists only 25 of these:
+it omits `blast-mainnet` and `blast-sepolia`, which the proxy does route. Trust
+`GET /crypto/rpc/networks` over the spec enum, and don't build a client-side
+validator from the enum or it will reject working networks.
 
 ### Chain families
 
