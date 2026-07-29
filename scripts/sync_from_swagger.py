@@ -61,6 +61,15 @@ TRACKED_ENUMS: dict[str, list[str]] = {
 # Paths we never expect a skill to reference verbatim (health checks etc).
 PATH_IGNORE = re.compile(r"^/$|^/health$|^/ping$")
 
+# Live, publicly documented endpoints that are deliberately absent from
+# swagger.yaml. Without this list they report as [STALE] forever, which trains
+# readers to ignore the stale section. Drop an entry the moment the spec picks
+# the path up; the assertion below fails loudly if that happens.
+UNSPECCED_LIVE_PATHS = {
+    "/tee/attestation",
+    "/tee/signature",
+}
+
 
 def load_spec(src: str) -> dict[str, Any]:
     if src.startswith("http://") or src.startswith("https://"):
@@ -142,6 +151,8 @@ def diff(spec: dict[str, Any]) -> dict[str, Any]:
         # no literal "..." placeholders) AND is not a prefix of a spec path.
         if "..." in p or p.count("/") < 2:
             return False
+        if p in UNSPECCED_LIVE_PATHS:
+            return False
         if any(spec_path.startswith(p + "/") for spec_path in spec_endpoints):
             return False
         # Normalize {var} placeholders so skill refs with different param
@@ -156,6 +167,8 @@ def diff(spec: dict[str, Any]) -> dict[str, Any]:
     stale_in_skills = sorted(
         p for p in (skill_endpoints - spec_endpoints) if _is_real_stale(p)
     )
+
+    now_specced = sorted(UNSPECCED_LIVE_PATHS & spec_endpoints)
 
     # Apply the same {var} normalization to the "missing" list so variants of
     # path-parameter names don't produce false positives.
@@ -188,6 +201,7 @@ def diff(spec: dict[str, Any]) -> dict[str, Any]:
     return {
         "missing_in_skills": missing_in_skills,
         "stale_in_skills": stale_in_skills,
+        "now_specced": now_specced,
         "enums": enum_report,
         "manifest": manifest,
     }
@@ -210,6 +224,11 @@ def print_report(report: dict[str, Any]) -> bool:
         print("\n== Endpoints referenced in skills but missing from spec ==")
         for p in stale:
             print(f"  [STALE] {p}")
+
+    for p in report["now_specced"]:
+        drift = True
+        print(f"\n== {p} is now in the spec ==")
+        print("  Remove it from UNSPECCED_LIVE_PATHS in this script.")
 
     for label, data in report["enums"].items():
         if data["missing_from_skills"] or data["only_in_skills"]:

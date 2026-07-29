@@ -39,6 +39,31 @@ Sources: [docs.venice.ai/overview/privacy](https://docs.venice.ai/overview/priva
 
 E2EE is **not** supported on `/responses` — route encrypted requests to `/chat/completions`.
 
+### Verifying a TEE claim
+
+Two endpoints let you check that inference really ran inside an enclave. Both
+are `GET`, **unauthenticated on purpose** (attestation evidence has to be
+verifiable by any party without credentials), and rate limited to **10 requests
+per minute per IP**. Neither appears in `swagger.yaml`, so `sync_from_swagger.py`
+flags `/tee/attestation` as stale. That is expected: the endpoints are live and
+`GET /models` points at them from the `supportsTeeAttestation` capability
+description.
+
+| Endpoint | Query | Returns |
+|---|---|---|
+| `GET /api/v1/tee/attestation` | `model` (required), `nonce` (optional hex, up to 64 chars / 32 bytes, used to bind an NVIDIA attestation to your challenge) | Attestation report, hardware type, and the TEE signing public key. |
+| `GET /api/v1/tee/signature` | `model` and `request_id` (required), `signing_algo` (optional `ecdsa` \| `ecdsa-p256` \| `rsa`) | The provider's signature over a specific request, plus request/response hashes. |
+
+Both return `400` if the model exists but is not TEE-attested, and `404` if the
+model ID is unknown.
+
+Verify the chain of trust in this order: fetch the attestation to get the
+signing public key and hardware type, confirm the recovered signer matches the
+attestation signing address, then verify the signature over the exact signed
+text the signature endpoint returned. Treat the request and response hashes as
+provider-reported values unless you can recompute them yourself from a
+documented canonical format.
+
 ## Capability filters
 
 Map prompt requirement → `model_spec.capabilities` flag (full list in [`venice-models`](../venice-models/SKILL.md#model_speccapabilities--text-models)).

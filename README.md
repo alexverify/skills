@@ -16,13 +16,13 @@ template/      Copy this as a starting point for a new skill
 | Skill | Covers |
 |---|---|
 | [`venice-api-overview`](./skills/venice-api-overview/SKILL.md) | Base URL, auth modes, response headers, pricing model, versioning |
-| [`venice-auth`](./skills/venice-auth/SKILL.md) | Bearer API keys + SIWE / x402 wallet authentication |
+| [`venice-auth`](./skills/venice-auth/SKILL.md) | Bearer API keys + SIWX / x402 wallet authentication (Base and Solana) |
 | [`venice-chat`](./skills/venice-chat/SKILL.md) | `/chat/completions` — `venice_parameters`, multimodal, tools, reasoning, streaming |
 | [`venice-responses`](./skills/venice-responses/SKILL.md) | `/responses` — OpenAI-compatible Responses API (Alpha) |
 | [`venice-embeddings`](./skills/venice-embeddings/SKILL.md) | `/embeddings` — models, encoding formats, dimensions |
 | [`venice-image-generate`](./skills/venice-image-generate/SKILL.md) | `/image/generate`, `/images/generations`, `/image/styles` |
 | [`venice-image-edit`](./skills/venice-image-edit/SKILL.md) | `/image/edit`, `/image/multi-edit`, `/image/upscale`, `/image/background-remove` |
-| [`venice-audio-speech`](./skills/venice-audio-speech/SKILL.md) | `/audio/speech` — TTS models, voices, formats, streaming |
+| [`venice-audio-speech`](./skills/venice-audio-speech/SKILL.md) | `/audio/speech`, `/audio/voices` — TTS models, voices, voice cloning, formats, streaming |
 | [`venice-audio-music`](./skills/venice-audio-music/SKILL.md) | `/audio/quote`, `/audio/queue`, `/audio/retrieve`, `/audio/complete` |
 | [`venice-audio-transcription`](./skills/venice-audio-transcription/SKILL.md) | `/audio/transcriptions` — Whisper, Parakeet, Scribe, Wizper, xAI STT |
 | [`venice-video`](./skills/venice-video/SKILL.md) | `/video/*` generation + transcription |
@@ -30,9 +30,9 @@ template/      Copy this as a starting point for a new skill
 | [`venice-text-routing`](./skills/venice-text-routing/SKILL.md) | Pick a Venice text model by privacy tier (anonymized / private / TEE / E2EE), capability (vision, reasoning, code, tools, web search), context size, and cost. The routing layer above `/chat/completions`. |
 | [`venice-characters`](./skills/venice-characters/SKILL.md) | `/characters*` + `venice_parameters.character_slug` |
 | [`venice-api-keys`](./skills/venice-api-keys/SKILL.md) | CRUD `/api_keys`, rate limits, Web3 key generation |
-| [`venice-billing`](./skills/venice-billing/SKILL.md) | `/billing/balance`, `/billing/usage`, `/billing/usage-analytics` |
-| [`venice-x402`](./skills/venice-x402/SKILL.md) | `/x402/*` — wallet credits, USDC on Base |
-| [`venice-crypto-rpc`](./skills/venice-crypto-rpc/SKILL.md) | `/crypto/rpc/*` — JSON-RPC proxy with 1×/2×/4× pricing |
+| [`venice-billing`](./skills/venice-billing/SKILL.md) | `/billing/balance`, `/billing/usage-history`, `/billing/usage-analytics` |
+| [`venice-x402`](./skills/venice-x402/SKILL.md) | `/x402/*` — wallet credits, USDC on Base and Solana |
+| [`venice-crypto-rpc`](./skills/venice-crypto-rpc/SKILL.md) | `/crypto/rpc/*` — EVM / Starknet / Solana JSON-RPC proxy with 1×/2×/4× pricing |
 | [`venice-augment`](./skills/venice-augment/SKILL.md) | `/augment/text-parser`, `/augment/scrape`, `/augment/search` |
 | [`venice-errors`](./skills/venice-errors/SKILL.md) | Error shapes, 402 payment required, 422 content policy, 429 rate limits, retry strategy |
 
@@ -115,7 +115,7 @@ Skills are derived from the current Venice OpenAPI spec and public docs at <http
 | Mode | Header | When to use |
 |---|---|---|
 | **Bearer API key** | `Authorization: Bearer <key>` | Venice Pro account, consumes DIEM / USD / bundled credits. |
-| **x402 / SIWE wallet** | `X-Sign-In-With-X: <base64 SIWE>` | No account required, pay per request with USDC on Base (chain `8453`). |
+| **x402 / SIWX wallet** | `SIGN-IN-WITH-X: <base64 SIWX>` | No account required, pay per request with USDC on Base (chain `8453`) or Solana mainnet. The legacy `X-Sign-In-With-X` name still works. |
 
 See [`skills/venice-auth`](./skills/venice-auth/SKILL.md) for full signing details.
 
