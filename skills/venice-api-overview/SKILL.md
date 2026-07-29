@@ -22,7 +22,7 @@ All endpoints live under:
 https://api.venice.ai/api/v1
 ```
 
-The OpenAPI spec is distributed at `outerface/swagger.yaml` (current version `20260420.235001`).
+The OpenAPI spec is distributed at `outerface/swagger.yaml` (current version `20260728.190807`).
 
 ## Authentication (pick one per request)
 
