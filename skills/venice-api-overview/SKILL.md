@@ -55,7 +55,7 @@ await v.models.list()
 | Embeddings | `POST /embeddings` | [`venice-embeddings`](../venice-embeddings/SKILL.md) |
 | Image gen | `POST /image/generate`, `POST /images/generations`, `GET /image/styles` | [`venice-image-generate`](../venice-image-generate/SKILL.md) |
 | Image edit | `POST /image/edit`, `POST /image/multi-edit`, `POST /image/upscale`, `POST /image/background-remove` | [`venice-image-edit`](../venice-image-edit/SKILL.md) |
-| TTS | `POST /audio/speech` | [`venice-audio-speech`](../venice-audio-speech/SKILL.md) |
+| TTS | `POST /audio/speech`, `POST /audio/voices` (voice cloning) | [`venice-audio-speech`](../venice-audio-speech/SKILL.md) |
 | STT | `POST /audio/transcriptions` | [`venice-audio-transcription`](../venice-audio-transcription/SKILL.md) |
 | Music (async) | `POST /audio/quote`, `/audio/queue`, `/audio/retrieve`, `/audio/complete` | [`venice-audio-music`](../venice-audio-music/SKILL.md) |
 | Video (async) | `POST /video/quote`, `/video/queue`, `/video/retrieve`, `/video/complete`, `/video/transcriptions` | [`venice-video`](../venice-video/SKILL.md) |
@@ -72,7 +72,7 @@ await v.models.list()
 | Category | Endpoints | Skill |
 |---|---|---|
 | API keys | `GET|POST|DELETE /api_keys`, `/api_keys/{id}`, `/api_keys/rate_limits`, `/api_keys/rate_limits/log`, `/api_keys/generate_web3_key` | [`venice-api-keys`](../venice-api-keys/SKILL.md) |
-| Billing | `GET /billing/balance`, `/billing/usage`, `/billing/usage-analytics` | [`venice-billing`](../venice-billing/SKILL.md) |
+| Billing | `GET /billing/balance`, `/billing/usage-history`, `/billing/usage-analytics`, `/billing/usage` (deprecated) | [`venice-billing`](../venice-billing/SKILL.md) |
 | x402 wallet | `GET /x402/balance/{wallet}`, `POST /x402/top-up`, `GET /x402/transactions/{wallet}` | [`venice-x402`](../venice-x402/SKILL.md) |
 
 ### Utility
@@ -137,4 +137,4 @@ or, for 400 validation errors:
 2. `GET /models` — pick a model and note its `model_spec.constraints` and `model_spec.pricing`.
 3. Wire up one happy-path call from the matching skill.
 4. Add error handling using [`venice-errors`](../venice-errors/SKILL.md) (402, 422, 429).
-5. Hook up observability via `X-Balance-Remaining` / `/billing/usage` / `/x402/transactions`.
+5. Hook up observability via `X-Balance-Remaining` / `/billing/usage-history` / `/x402/transactions`.
