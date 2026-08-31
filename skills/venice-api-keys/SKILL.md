@@ -1,6 +1,6 @@
 ---
 name: venice-api-keys
-description: Manage Venice API keys. Covers GET/POST/PATCH/DELETE /api_keys, GET /api_keys/{id}, GET /api_keys/rate_limits, GET /api_keys/rate_limits/log, the two-step /api_keys/generate_web3_key wallet flow, INFERENCE vs ADMIN key types, and per-key consumption limits (USD / DIEM).
+description: Manage Venice API keys. Covers GET/POST/PATCH/DELETE /api_keys, GET /api_keys/{id}, GET /api_keys/rate_limits, GET /api_keys/rate_limits/log, the two-step /api_keys/generate_web3_key wallet flow, INFERENCE vs ADMIN key types, modelPrivacy (ALL / PRIVATE_TEXT / PRIVATE_ONLY), limitPeriod (EPOCH / MONTH / LIFETIME), and per-key consumption limits (USD / DIEM).
 ---
 
 # Venice API Keys
@@ -11,7 +11,7 @@ Admin endpoints for managing Bearer API keys. You need an **ADMIN** key (or pare
 |---|---|
 | `GET /api_keys` | List your keys (masked). |
 | `POST /api_keys` | Create a new key. Response contains the **only copy of the secret**. |
-| `PATCH /api_keys` | Update `description`, `expiresAt`, `consumptionLimit`. |
+| `PATCH /api_keys` | Update `description`, `expiresAt`, `consumptionLimit`, `limitPeriod`, `modelPrivacy`. |
 | `DELETE /api_keys?id=...` | Revoke a key. |
 | `GET /api_keys/{id}` | Full details for one key (usage, limits, expiration). |
 | `GET /api_keys/rate_limits` | Balances + per-model rate-limit tiers for the current key. |
@@ -51,8 +51,11 @@ Returns:
       "expiresAt": null,
       "lastUsedAt": "2026-04-20T10:05:00Z",
       "last6Chars": "2V2jNW",
+      "limitPeriod": "EPOCH",
+      "modelPrivacy": "ALL",
       "consumptionLimits": { "usd": 50, "diem": 10 },
-      "usage": { "trailingSevenDays": { "usd": "4.20", "diem": "0.00" } }
+      "usage": { "trailingSevenDays": { "usd": "4.20", "diem": "0.00" } },
+      "currentPeriodUsage": { "usd": "5.1234", "diem": "2.5000" }
     }
   ]
 }
@@ -70,7 +73,9 @@ curl https://api.venice.ai/api/v1/api_keys \
     "apiKeyType": "INFERENCE",
     "description": "backend prod",
     "expiresAt": "2026-12-31T23:59:59Z",
-    "consumptionLimit": { "usd": 50, "diem": 10 }
+    "consumptionLimit": { "usd": 50, "diem": 10 },
+    "limitPeriod": "MONTH",
+    "modelPrivacy": "PRIVATE_TEXT"
   }'
 ```
 
@@ -85,7 +90,9 @@ Response includes the **one-time** `apiKey` secret:
     "apiKeyType": "INFERENCE",
     "description": "backend prod",
     "expiresAt": "2026-12-31T23:59:59Z",
-    "consumptionLimit": { "usd": 50, "diem": 10 }
+    "consumptionLimit": { "usd": 50, "diem": 10 },
+    "limitPeriod": "MONTH",
+    "modelPrivacy": "PRIVATE_TEXT"
   }
 }
 ```
@@ -100,8 +107,27 @@ Response includes the **one-time** `apiKey` secret:
 ### Optional
 
 - `expiresAt` — empty string or ISO 8601 date/datetime. Omit for non-expiring.
-- `consumptionLimit.usd` / `.diem` — per-epoch caps. Null means no cap on that currency.
+- `consumptionLimit.usd` / `.diem` — caps evaluated against `limitPeriod`. Null means no cap on that currency.
 - `consumptionLimit.vcu` — **deprecated** (legacy Diem). Use `diem` instead.
+- `limitPeriod` — `EPOCH` (legacy default; resets every UTC day), `MONTH` (resets on the 1st of each UTC calendar month), or `LIFETIME` (never resets; a permanent cap).
+- `modelPrivacy` — which models this key may call, by privacy tier. See below.
+
+`description` is max **64** characters.
+
+## `modelPrivacy`
+
+Returned on every list/create/get/patch payload. Optional on create and on
+`POST /api_keys/generate_web3_key`. Privacy-tier names match
+[`venice-text-routing`](../venice-text-routing/SKILL.md).
+
+| Value | What the key may call |
+|---|---|
+| `ALL` | Every model. |
+| `PRIVATE_TEXT` | Text and embedding models must be Private, TEE, or E2EE. Other modalities may be Anonymous or Private. |
+| `PRIVATE_ONLY` | Every model must be Private, TEE, or E2EE. Anonymous models are rejected. |
+
+A request that uses a key against a disallowed model is rejected — do not
+assume `ALL` just because you omitted the field on an older key.
 
 ## `PATCH /api_keys` — update
 
@@ -109,10 +135,12 @@ Response includes the **one-time** `apiKey` secret:
 curl -X PATCH https://api.venice.ai/api/v1/api_keys \
   -H "Authorization: Bearer $ADMIN_KEY" \
   -H "Content-Type: application/json" \
-  -d '{ "id": "uuid", "description": "renamed", "consumptionLimit": { "usd": 100 } }'
+  -d '{ "id": "uuid", "description": "renamed", "consumptionLimit": { "usd": 100 }, "limitPeriod": "MONTH", "modelPrivacy": "PRIVATE_ONLY" }'
 ```
 
-Only `description`, `expiresAt`, and `consumptionLimit` are mutable. Pass `"expiresAt": ""` or `null` to remove an expiration.
+Mutable fields: `description`, `expiresAt`, `consumptionLimit`, `limitPeriod`,
+and `modelPrivacy`. Required body field is `id` only. Pass `"expiresAt": ""`
+or `null` to remove an expiration.
 
 ## `DELETE /api_keys?id=<uuid>` — revoke
 
@@ -125,7 +153,9 @@ Returns `{"success": true}`. Revocation is immediate.
 
 ## `GET /api_keys/{id}` — details
 
-Returns one key's full metadata plus trailing-7-day usage. Useful for an admin dashboard row view.
+Returns one key's full metadata plus trailing-7-day usage, `limitPeriod`,
+`modelPrivacy`, and `currentPeriodUsage` (the last only when consumption
+limits are set). Useful for an admin dashboard row view.
 
 ## `GET /api_keys/rate_limits`
 
@@ -211,6 +241,8 @@ const res = await fetch(`${base}/api_keys/generate_web3_key`, {
     signature,
     token,
     consumptionLimit: { usd: 50 },
+    limitPeriod: 'MONTH',
+    modelPrivacy: 'PRIVATE_TEXT',
   }),
 })
 
@@ -232,6 +264,8 @@ await fetch(`${base}/api_keys`, {
     apiKeyType: 'INFERENCE',
     description: `cust:${customerId}`,
     consumptionLimit: { usd: 5 },
+    limitPeriod: 'MONTH',
+    modelPrivacy: 'PRIVATE_TEXT',
   }),
 })
 ```
@@ -260,7 +294,8 @@ if (!data.accessPermitted) alert('Key blocked — top up or change tier')
 ## Gotchas
 
 - The secret is returned **exactly once**, in the `POST` response. Losing it = delete + recreate.
-- `consumptionLimit` is per **epoch** (day / reset cycle), not per call.
+- `consumptionLimit` is evaluated against `limitPeriod` (`EPOCH` / `MONTH` / `LIFETIME`), not per call.
+- `modelPrivacy` is enforced at inference time. `PRIVATE_ONLY` rejects Anonymous models; `PRIVATE_TEXT` only restricts text and embeddings. See [`venice-text-routing`](../venice-text-routing/SKILL.md) for the privacy-tier ladder.
 - `INFERENCE` keys can't call admin-only routes (`POST/PATCH/DELETE /api_keys`, `GET /api_keys`, `GET /api_keys/{id}`, `GET /billing/balance`, `GET /billing/usage`). They **can** call `GET /api_keys/rate_limits` and `/api_keys/rate_limits/log` for themselves. Use a separate `ADMIN` key for management.
 - `vcu` is legacy — use `diem`.
 - `expiresAt` of empty string `""` means "no expiration" in CREATE; on UPDATE it **removes** an existing one.
