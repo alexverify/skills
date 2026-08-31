@@ -1,6 +1,6 @@
 ---
 name: venice-video
-description: Generate and transcribe videos via Venice. Covers the async /video/quote + /video/queue + /video/retrieve + /video/complete loop, text-to-video, image-to-video, video-to-video (upscale), audio input, reference images, reference video and reference audio (R2V), scene and element support, plus /video/transcriptions for YouTube URLs.
+description: Generate and transcribe videos via Venice. Covers the async /video/quote + /video/queue + /video/retrieve + /video/complete loop, text-to-video, image-to-video, video-to-video (upscale), enhancement (Topaz) controls, keyframes, audio input, reference images/video/audio/documents (R2V), Seedance 2.5 source-matched duration and aspect ratio, scene and element support, plus /video/transcriptions for YouTube URLs.
 ---
 
 # Venice Video
@@ -45,8 +45,16 @@ Response: `{"quote": 0.35}` USD.
 and `video_url` for upscale models (`video_url` lets Venice auto-detect the
 source duration), and `reference_video_total_duration` for reference-to-video
 models — the aggregate seconds of every reference video you intend to send, up
-to 45. Quote a reference-video job without it and you get the no-reference
-baseline price.
+to 150 (per-clip and family caps vary by model). Quote a fixed-duration
+reference-video job without it and you get the no-reference baseline price.
+It is **required** when quoting Seedance source-matched duration (`-1` /
+`auto`) or aspect ratio (`adaptive` / `auto`).
+
+Enhancement models also accept `enhancement_model` (values from
+`GET /models` `constraints.topaz.models`), `target_fps` (16–120), and
+`slowdown_factor` (`1` / `2` / `4` / `8`). `target_fps` ≥ 48 doubles the
+price on upscaling endpoints and scales linearly on interpolation;
+`slowdown_factor` multiplies the billed duration.
 
 ### 2. Submit with `/video/queue`
 
@@ -100,23 +108,48 @@ Availability depends on the model — check `GET /models?type=video`.
 | Field | Type | Notes |
 |---|---|---|
 | `model` | string | Required. |
-| `prompt` | string, ≤ 2500–3500 | **Required** (min length 1). Max length varies per model. |
-| `negative_prompt` | string, ≤ 2500–3500 | — |
-| `duration` | enum `1s..16s` in 1s steps, plus `18s`, `20s`, `25s`, `30s`, `1 gen`, `Auto` | Required. Model-specific subset. `1 gen` means one generation unit for models priced per generation rather than per second. |
-| `aspect_ratio` | `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `9:16`, `16:9`, `21:9` | Some models ignore. |
-| `resolution` | `256p..4k`, or upscale hints `2x` / `4x` / `true_1080p` | Use `upscale_factor` for upscale models. |
-| `upscale_factor` | `1` / `2` / `4` | Only for upscale models. `1` = quality enhancement. |
+| `prompt` | string, ≤ 2500–20000 | **Required** (min length 1). Schema max is 20000; most models cap near 2500. |
+| `negative_prompt` | string, ≤ 2500–20000 | Same per-model cap as `prompt`. |
+| `duration` | `1s`–`30s` in 1s steps, plus `-1`, `1 gen`, `auto`, `Auto` | Required. Model-specific subset. `1 gen` is one generation unit for models priced per generation. On Seedance 2.5 R2V edit, `-1` or `auto` matches output length to the source clip (`reference_video_urls` required; source 4–30 s). |
+| `aspect_ratio` | `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `9:21`, `16:9`, `21:9`, `adaptive`, `auto` | Some models ignore. On Seedance 2.x R2V edit/extend, `adaptive` or `auto` matches the source clip. |
+| `omni_reference_task_type` | `auto` / `reference` / `edit` / `extend` | Seedance 2.5 R2V only. Hint forwarded to BytePlus; aliases `editing`→`edit`, `extension`→`extend`. Omit to infer from the prompt when `reference_video_urls` are present. Prompt must still match the type. |
+| `resolution` | `256p`–`4k`, `1x` / `2x` / `4x`, `2K`, `768P`, `true_1080p` | Use `upscale_factor` for upscale models. |
+| `upscale_factor` | `1` / `2` / `4` | Only for upscale models. `1` = quality enhancement. Default `2`. |
 | `audio` | bool | Default `true`. Audio-capable models. |
 | `image_url` | URL or `data:` URL | Image-to-video reference frame. |
 | `end_image_url` | URL or data URL | End frame / transition reference. |
 | `audio_url` | URL or data URL | Background music input. WAV/MP3, ≤ 30 s, ≤ 15 MB. |
-| `video_url` | URL or data URL | Video-to-video / upscale input. MP4/MOV/WebM. |
-| `reference_image_urls[]` | array of URLs, ≤ 9 | Character / style consistency images. |
-| `reference_video_urls[]` | array of URLs, ≤ 3 | Reference-to-video models (e.g. Seedance 2.0 R2V). Inherits subject motion, camera movement, and style. Per clip 2–15 s, `.mp4` or `.mov`, ≤ 50 MB; aggregate ≤ 15 s. |
-| `reference_audio_urls[]` | array of URLs, ≤ 3 | Donor audio for vocal timbre, narration, or sound effects. Per clip 2–15 s, `.wav` or `.mp3`; aggregate ≤ 15 s. **Must be paired with at least one reference image or reference video** — audio-only Reference workflows are rejected at validation. |
+| `video_url` | URL or data URL | Video-to-video / upscale / enhancement input. MP4/MOV/WebM. |
+| `reference_image_urls[]` | array of URLs, ≤ 30 | Character / style consistency images. |
+| `reference_video_urls[]` | array of URLs, ≤ 10 | R2V models (e.g. Seedance 2.x). Inherits subject motion, camera, style. Per clip 2–15 s, `.mp4` or `.mov`, ≤ 50 MB; the field description still lists aggregate ≤ 15 s (see gotchas). |
+| `reference_audio_urls[]` | array of URLs, ≤ 10 | Donor audio for vocal timbre, narration, or SFX. Per clip 2–15 s, `.wav` or `.mp3`; aggregate ≤ 15 s. **Must be paired with at least one reference image or reference video.** |
+| `reference_document_urls[]` | array of URLs, ≤ 1 | Wan 3.0 Omni-Reference. Document or public webpage URL; Venice fetches it as `type: "file"` (≤ 100 MB). |
+| `keyframes[]` | array, ≤ 10 | Keyframe-driven models. Each item is `{ image_url, frame_index }`. `frame_index` ≥ 0, unique, and ≤ `duration × 24` (24 fps). |
 | `consents` | object | Provider-specific consent attestations. Seedance requires consent only when the submitted media contains faces. |
 | `elements[]` | array, ≤ 4 | Advanced models (e.g. Kling O3 R2V): each has `frontal_image_url`, up to 3 `reference_image_urls`, `video_url`. Reference in prompt as `@Element1`, `@Element2`. |
 | `scene_image_urls[]` | array of URLs, ≤ 4 | Advanced scene refs; reference in prompt as `@Image1`, `@Image2`. |
+
+### Enhancement-only fields (Topaz and similar)
+
+Present on `/video/queue`. Values apply only to enhancement models — check
+`GET /models?type=video` and `constraints.topaz.models` before sending.
+
+| Field | Type | Notes |
+|---|---|---|
+| `enhancement_model` | string | Provider-side model; listed per model in `constraints.topaz.models`. |
+| `target_fps` | integer 16–120 | Frame interpolation target. Omit to keep the source frame rate. ≥ 48 doubles price on upscaling endpoints. |
+| `slowdown_factor` | `1` / `2` / `4` / `8` | Slow-motion; `2` makes the output twice as long at the target FPS. Multiplies billed duration. |
+| `softness` | number 1–5 | Sharpest (1) to softest (5). |
+| `creativity` | number 0–1 | How much new detail the model invents. |
+| `realism` | number 0–1 | Bias generated detail toward photorealism. |
+| `sharp` | number 0–1 | Output sharpness (0.5 = neutral). |
+| `compression` | number 0–1 | Compression-artifact removal. |
+| `noise` | number 0–1 | Noise reduction. |
+| `halo` | number 0–1 | Halo reduction. |
+| `grain` | number 0–0.1 | Film grain. |
+| `recover_detail` | number 0–1 | Recover original detail. |
+| `h264_output` | bool | Output H.264 instead of the default H.265. |
+| `output_format` | `mp4` / `prores` | SDR-to-HDR only. `mp4` = 10-bit H.265 HDR10; `prores` = 10-bit ProRes. |
 
 ## Common recipes
 
@@ -155,6 +188,39 @@ Availability depends on the model — check `GET /models?type=video`.
   "duration": "Auto"
 }
 ```
+
+### Enhancement (interpolation / slow-mo)
+
+```json
+{
+  "model": "<enhancement model>",
+  "video_url": "https://example.com/input.mp4",
+  "duration": "Auto",
+  "enhancement_model": "Proteus",
+  "target_fps": 60,
+  "slowdown_factor": 2
+}
+```
+
+`enhancement_model` values come from `GET /models` `constraints.topaz.models`
+for the chosen model — do not hardcode a name that is not listed there.
+
+### Seedance 2.5 source-matched R2V edit
+
+```json
+{
+  "model": "<seedance-2-5-r2v model>",
+  "prompt": "Continue the clip: the camera pushes in as the subject turns.",
+  "duration": "auto",
+  "aspect_ratio": "adaptive",
+  "omni_reference_task_type": "edit",
+  "reference_video_urls": ["https://example.com/source-4-to-30s.mp4"]
+}
+```
+
+Quote the same job with `duration: "auto"` (or `"-1"`),
+`aspect_ratio: "adaptive"` (or `"auto"`), and
+`reference_video_total_duration` set to the source clip's length in seconds.
 
 ### Multi-element consistency (Kling O3 R2V-style)
 
@@ -226,11 +292,12 @@ async function waitForVideo(model: string, queueId: string, downloadUrl?: string
 
 ## Gotchas
 
-- **`duration` is required on `/video/queue`.** Even `Auto` is a valid explicit value.
+- **`duration` is required on `/video/queue`.** `Auto`, `auto`, and `-1` are valid explicit values; the last two are Seedance 2.5 source-matched edit, not a generic "pick for me."
 - `download_url` is **only sometimes** returned at queue time. Always handle both paths: binary from `/retrieve` OR fetching `download_url` after status `COMPLETED`.
 - `download_url` expires in 24 h — download promptly.
 - Upscale models use `upscale_factor` *instead of* `resolution`.
-- `reference_image_urls[]` is capped at 9 entries, `reference_video_urls[]` and `reference_audio_urls[]` at 3 each, `elements[]` at 4, `scene_image_urls[]` at 4. Over-limit is `400`.
-- Quote reference-video jobs with `reference_video_total_duration` (aggregate seconds of all reference videos). It switches the quote to the provider's "input with video" rate tier and the `(input + output) × pixels` token formula. Omit it and you get the no-reference baseline, which will under-quote the job.
+- Array caps: `reference_image_urls[]` ≤ 30, `reference_video_urls[]` ≤ 10, `reference_audio_urls[]` ≤ 10, `reference_document_urls[]` ≤ 1, `keyframes[]` ≤ 10, `elements[]` ≤ 4, `scene_image_urls[]` ≤ 4. Over-limit is `400`.
+- Quote reference-video jobs with `reference_video_total_duration` (aggregate seconds, spec max 150). It switches the quote to the provider's "input with video" rate tier and the `(input + output) × pixels` token formula. Required for Seedance source-matched duration/aspect quotes; omit it on a fixed-duration quote and you get the no-reference baseline, which will under-quote the job. The queue field text still says reference-video aggregate ≤ 15 s — honor the stricter cap the model advertises on `GET /models`.
+- Enhancement fields (`enhancement_model`, `target_fps`, `slowdown_factor`, softness/creativity/…) are ignored or rejected on non-enhancement models. Read `constraints.topaz.models` first.
 - `data:` URLs count toward payload size; large base64 videos may trip `413` — prefer hosted URLs.
 - `/video/transcriptions` is YouTube-URL-only; it does not accept arbitrary video uploads (use ffmpeg to strip audio, then `/audio/transcriptions`).
