@@ -1,6 +1,6 @@
 ---
 name: venice-billing
-description: Venice billing and usage analytics - GET /billing/balance, GET /billing/usage-history (keyset-paginated per-request ledger, JSON or CSV), GET /billing/usage (deprecated predecessor), and GET /billing/usage-analytics (aggregated by date/model/key). Covers the DIEM/USD/BUNDLED_CREDITS consumption priority and building dashboards. (Beta)
+description: Venice billing and usage analytics - GET /billing/balance, GET /billing/usage-history (keyset-paginated per-request ledger, JSON or CSV), GET /billing/usage (sunset; always 410), and GET /billing/usage-analytics (aggregated by date/model/key). Covers the DIEM/USD/BUNDLED_CREDITS consumption priority and building dashboards. (Beta)
 ---
 
 # Venice Billing
@@ -11,18 +11,19 @@ Four read-only endpoints for account-level billing and analytics. All are under 
 |---|---|
 | `GET /billing/balance` | Current `canConsume` flag, remaining DIEM & USD, epoch allocation. |
 | `GET /billing/usage-history` | Per-request ledger with keyset pagination. JSON or CSV. **Use this one.** |
-| `GET /billing/usage` | **Deprecated** offset-paginated ledger. See the warning below. |
+| `GET /billing/usage` | **Sunset.** Every request returns `410`. Use `/billing/usage-history`. |
 | `GET /billing/usage-analytics` | Aggregated breakdowns: by date, model, API key. |
 
-All require Bearer auth (not x402 — for wallet balances, use [`venice-x402`](../venice-x402/SKILL.md)). `GET /billing/balance`, `GET /billing/usage-history`, and `GET /billing/usage` require an **ADMIN** key — an `INFERENCE` key gets `401`. `GET /billing/usage-analytics` works on any authenticated key (scoped to the account behind the key).
+All require Bearer auth (not x402 — for wallet balances, use [`venice-x402`](../venice-x402/SKILL.md)). `GET /billing/balance` and `GET /billing/usage-history` require an **ADMIN** key — an `INFERENCE` key gets `401`. `GET /billing/usage-analytics` works on any authenticated key (scoped to the account behind the key). `GET /billing/usage` is sunset and does not authenticate: it answers every request with `410`.
 
-> **`GET /billing/usage` is deprecated and mostly closed.** It is rate limited to
-> **1 request per minute per user**, and accounts created on or after
-> **2026-07-07** are rejected outright with `410 Gone`. Every response carries
-> `Deprecation: @1783555200` and
-> `Link: </api/v1/billing/usage-history>; rel="successor-version"`. Write new
-> integrations against `GET /billing/usage-history`, which returns the same data
-> with keyset pagination.
+> **`GET /billing/usage` is sunset.** The live spec (`20260826.105305`) and the
+> deployed route answer **every** request with `410 Gone`. Confirmed without
+> auth on `https://api.venice.ai/api/v1/billing/usage`. Response headers:
+> `Deprecation: @1783555200`, `Sunset: Wed, 16 Sep 2026 00:00:00 GMT`, and
+> `Link: </api/v1/billing/usage-history>; rel="successor-version"`. The body
+> names `/billing/usage-history` and the parameter renames (`page`/`limit` →
+> `pageSize` + `nextCursor`; `startDate`/`endDate` → `startTimestamp` /
+> `endTimestamp`). Do not call this endpoint.
 
 ## Currency / priority
 
@@ -112,8 +113,13 @@ stamps the export time into the filename (each page of a walk downloads under a
 unique, sort-ordered name) and `nextCursor` moves to the `x-next-cursor`
 response header.
 
-Entry fields match `/billing/usage` (see below), with `inferenceDetails`
-sub-fields nullable when a count or timing was not recorded.
+### Fields
+
+- `sku` — billing line item (model + unit type + format).
+- `units` — for LLMs, millions of tokens (e.g. `0.000227` = 227 tokens).
+- `pricePerUnitUsd` — rate; for DIEM, DIEM ≈ USD so this doubles as reference.
+- `amount` — negative for debit.
+- `inferenceDetails` — present for inference SKUs; `requestId` is the `id` returned on the original `/chat/completions` response. Sub-fields are nullable when a count or timing was not recorded.
 
 ### Walking the full history
 
@@ -127,67 +133,18 @@ for (;;) {
 }
 ```
 
-## `GET /billing/usage` (deprecated)
+## `GET /billing/usage` (sunset)
 
-Offset-paginated per-request ledger. Kept alive for grandfathered accounts only;
-see the deprecation warning at the top of this skill before using it.
-
-```bash
-curl "https://api.venice.ai/api/v1/billing/usage?limit=200&page=1&sortOrder=desc&currency=USD&startDate=2026-04-01T00:00:00Z&endDate=2026-04-21T23:59:59Z" \
-  -H "Authorization: Bearer $VENICE_API_KEY" \
-  -H "Accept: application/json"
-```
-
-### Query parameters
-
-| Param | Notes |
-|---|---|
-| `currency` | `USD` / `VCU` / `DIEM` / `BUNDLED_CREDITS`. |
-| `startDate` / `endDate` | ISO 8601 datetime. |
-| `limit` | 1–500. Default 200. |
-| `page` | Default 1. |
-| `sortOrder` | `asc` / `desc` on `createdAt`. Default `desc`. |
-
-### Accept header
-
-- `application/json` (default) — paginated JSON.
-- `text/csv` — downloads `billing-usage.csv` (sets `Content-Disposition`).
-
-### Response (JSON)
+Do not call this. The spec no longer documents query parameters or a `200`
+body. Observed response (no auth required):
 
 ```json
 {
-  "warningMessage": "DIEM (formerly VCU) has been renamed...",
-  "data": [
-    {
-      "timestamp": "2026-04-20T12:34:56Z",
-      "sku": "zai-org-glm-5-1-llm-output-mtoken",
-      "units": 0.000227,
-      "pricePerUnitUsd": 2.8,
-      "amount": -0.06356,
-      "currency": "DIEM",
-      "notes": "API Inference",
-      "inferenceDetails": {
-        "requestId": "chatcmpl-...",
-        "promptTokens": 339,
-        "completionTokens": 227,
-        "inferenceExecutionTime": 2964
-      }
-    }
-  ],
-  "pagination": { "limit": 200, "page": 1, "total": 1000, "totalPages": 5 }
+  "error": "GET /api/v1/billing/usage was sunset on 2026-09-16 and no longer returns usage data. Use GET /api/v1/billing/usage-history, which returns the same ledger entries with cursor pagination: replace page and limit with pageSize plus the nextCursor from each response, and startDate and endDate with startTimestamp and endTimestamp. See https://docs.venice.ai/api-reference/endpoint/billing/usage-history for details."
 }
 ```
 
-Response headers: `x-pagination-{limit,page,total,total-pages}`.
-
-### Fields
-
-- `sku` — billing line item (model + unit type + format).
-- `units` — for LLMs, millions of tokens (e.g. `0.000227` = 227 tokens).
-- `pricePerUnitUsd` — rate; for DIEM, DIEM ≈ USD so this doubles as reference.
-- `amount` — negative for debit.
-- `inferenceDetails` — present for inference SKUs; `requestId` is the `id` returned on the original `/chat/completions` response.
+Use `GET /billing/usage-history` for the ledger.
 
 ## `GET /billing/usage-analytics`
 
@@ -277,19 +234,17 @@ const a = await fetch(`${base}/billing/usage-analytics?lookback=30d`, { headers 
 | Code | Meaning |
 |---|---|
 | `400` | Bad params (`startDate` without `endDate`, calendar range > 90 days). On `/billing/usage-history`: a `cursor` sent with any filter, an unknown parameter, or `endTimestamp` not later than `startTimestamp`. `lookback=100d` is silently **clamped** to 90 days rather than rejected. |
-| `401` | Auth failed, or `INFERENCE` key used on `/billing/balance`, `/billing/usage-history`, or `/billing/usage` (ADMIN required). |
-| `410` | `/billing/usage` only — the account was created on or after 2026-07-07 and must use `/billing/usage-history`. |
-| `429` | `/billing/usage` only — the deprecated 1 request/minute cap. |
+| `401` | Auth failed, or `INFERENCE` key used on `/billing/balance` or `/billing/usage-history` (ADMIN required). |
+| `410` | `/billing/usage` only — sunset. Every request. Switch to `/billing/usage-history`. Do not retry. |
 | `500` | Internal error. |
 | `504` | Analytics query timed out — shorten `lookback` or date range. |
 
 ## Gotchas
 
 - This is **Beta** — field names may shift. Validate against `swagger.yaml` periodically.
-- Don't build anything new on `/billing/usage`. One request per minute is not a pagination budget, and new accounts can't call it at all.
-- `/billing/usage-history` takes `startTimestamp` / `endTimestamp` / `pageSize`; `/billing/usage` takes `startDate` / `endDate` / `limit` / `page`. The parameter names do not carry over when you migrate.
-- `/billing/usage-history` accepts `USD`, `DIEM`, and `BUNDLED_CREDITS` for `currency`. Legacy `VCU` is only on `/billing/usage`.
-- `currency` values on `/billing/usage` include legacy `VCU` — use `DIEM` instead in new code.
+- Don't call `/billing/usage`. It is sunset and always returns `410` (confirmed live). Use `/billing/usage-history`.
+- `/billing/usage-history` takes `startTimestamp` / `endTimestamp` / `pageSize`. The old `/billing/usage` names (`startDate` / `endDate` / `limit` / `page`) do not carry over.
+- `/billing/usage-history` accepts `USD`, `DIEM`, and `BUNDLED_CREDITS` for `currency`. Legacy `VCU` is gone with `/billing/usage`.
 - `inferenceDetails` is `null` for non-inference SKUs (e.g. subscription charges).
 - The analytics endpoint is **cached 10 min** — sudden spikes lag in the dashboard by that window.
 - `byModelDaily.date` is a **Unix milliseconds integer**; `byDate.date` is a **`YYYY-MM-DD` string**. Don't mix them.

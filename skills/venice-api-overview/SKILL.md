@@ -72,7 +72,7 @@ await v.models.list()
 | Category | Endpoints | Skill |
 |---|---|---|
 | API keys | `GET|POST|DELETE /api_keys`, `/api_keys/{id}`, `/api_keys/rate_limits`, `/api_keys/rate_limits/log`, `/api_keys/generate_web3_key` | [`venice-api-keys`](../venice-api-keys/SKILL.md) |
-| Billing | `GET /billing/balance`, `/billing/usage-history`, `/billing/usage-analytics`, `/billing/usage` (deprecated) | [`venice-billing`](../venice-billing/SKILL.md) |
+| Billing | `GET /billing/balance`, `/billing/usage-history`, `/billing/usage-analytics`, `/billing/usage` (sunset; always 410) | [`venice-billing`](../venice-billing/SKILL.md) |
 | x402 wallet | `GET /x402/balance/{wallet}`, `POST /x402/top-up`, `GET /x402/transactions/{wallet}` | [`venice-x402`](../venice-x402/SKILL.md) |
 
 ### Utility

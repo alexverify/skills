@@ -41,7 +41,7 @@ Response is the raw audio (`Content-Type` matches `response_format`).
 | `input` | string | — | **Required.** Up to **4096** characters. |
 | `model` | enum | `tts-kokoro` (OpenAPI schema default) | See model list below. `tts-xai-v1` is the recommended frontier default; pick the model that fits your voice + language needs. |
 | `voice` | string, ≤ 512 | model-specific (e.g. `eve` for `tts-xai-v1`) | **Voice is model-specific** — wrong combo = `400`. See voice families. Also accepts a cloned-voice handle (`vv_…`) from `POST /audio/voices`, paired with the same `model` that created it. |
-| `response_format` | `mp3` / `opus` / `aac` / `flac` / `wav` / `pcm` | `mp3` | `pcm` returns 24 kHz signed-16 LE for pipelines. |
+| `response_format` | `mp3` / `opus` / `aac` / `flac` / `wav` / `pcm` | model default | **No schema default.** Supported formats and the omit-default are per model — read `model_spec.supported_formats` and `model_spec.default_format` from `GET /models?type=tts`. An explicit unsupported format is `400`. `pcm` is 24 kHz signed-16 LE where advertised. |
 | `speed` | number | `1.0` | Range `0.25–4.0`. |
 | `streaming` | bool | `false` | `true` → streamed sentence-by-sentence as audio continues to generate. |
 | `language` | string | — | Optional hint. Accepted form depends on model (Qwen 3 = full names like `English`; xAI / ElevenLabs = ISO 639-1 like `en`; MiniMax = full names). Unsupported values silently ignored. |
@@ -169,7 +169,7 @@ For other families, emotion comes from the **voice choice itself** (e.g. Inworld
 
 | Code | Meaning |
 |---|---|
-| `400` | Bad voice/model combo, input too long (>4096), language hint rejected by a strict model, invalid voice for the chosen model. |
+| `400` | Bad voice/model combo, input too long (>4096), language hint rejected by a strict model, invalid voice for the chosen model, or `response_format` not in that model's `supported_formats`. |
 | `401` | Auth / Pro-only model. |
 | `402` | Insufficient balance. |
 | `429` | Rate limited. |
@@ -177,6 +177,7 @@ For other families, emotion comes from the **voice choice itself** (e.g. Inworld
 
 ## Gotchas
 
+- Do **not** assume `response_format` defaults to `mp3`. Several live TTS models (`tts-inworld-1-5-max`, `tts-chatterbox-hd`, `tts-orpheus`, `tts-gradium-v1`) advertise `default_format: wav` and reject `mp3`. Qwen 3 and ElevenLabs Turbo accept `mp3` only. Always send a format from `model_spec.supported_formats`, or omit the field to use `model_spec.default_format`.
 - `input` hard cap is 4096 chars. For books / long content, split on sentence boundaries and concatenate audio client-side.
 - `streaming: true` + SDKs: some OpenAI SDK versions don't expose streaming for `audio.speech.create`; call the REST endpoint directly and consume the HTTP body.
 - `speed` compounds with model internal speech rate — extreme values (`0.25`, `4.0`) often sound unnatural; keep within `0.8–1.3` for narration.

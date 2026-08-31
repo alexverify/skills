@@ -26,7 +26,7 @@ Limits: key creation is capped at **20 requests/minute** and **500 active keys p
 | Type | Can call |
 |---|---|
 | `INFERENCE` | Inference endpoints plus any route that only requires authentication — e.g. `/chat/*`, `/image/*`, `/audio/*`, `/video/*`, `/embeddings`, `/augment/*`, `/crypto/rpc`, `/characters`, `/api_keys/rate_limits*`, `/support-bot`. Rejected from admin routes listed below with `401`. |
-| `ADMIN` | Everything an `INFERENCE` key can do, plus admin-only routes: `POST/PATCH/DELETE /api_keys`, `GET /api_keys` (list), `GET /api_keys/{id}`, `GET /billing/balance`, `GET /billing/usage`. |
+| `ADMIN` | Everything an `INFERENCE` key can do, plus admin-only routes: `POST/PATCH/DELETE /api_keys`, `GET /api_keys` (list), `GET /api_keys/{id}`, `GET /billing/balance`, `GET /billing/usage-history`. |
 
 A leaf app should almost always use **`INFERENCE`** keys — per-app, per-user, with consumption caps.
 
@@ -261,7 +261,7 @@ if (!data.accessPermitted) alert('Key blocked — top up or change tier')
 
 - The secret is returned **exactly once**, in the `POST` response. Losing it = delete + recreate.
 - `consumptionLimit` is per **epoch** (day / reset cycle), not per call.
-- `INFERENCE` keys can't call admin-only routes (`POST/PATCH/DELETE /api_keys`, `GET /api_keys`, `GET /api_keys/{id}`, `GET /billing/balance`, `GET /billing/usage`). They **can** call `GET /api_keys/rate_limits` and `/api_keys/rate_limits/log` for themselves. Use a separate `ADMIN` key for management.
+- `INFERENCE` keys can't call admin-only routes (`POST/PATCH/DELETE /api_keys`, `GET /api_keys`, `GET /api_keys/{id}`, `GET /billing/balance`, `GET /billing/usage-history`). They **can** call `GET /api_keys/rate_limits` and `/api_keys/rate_limits/log` for themselves. Use a separate `ADMIN` key for management. `GET /billing/usage` is sunset and returns `410` for every caller — see [`venice-billing`](../venice-billing/SKILL.md).
 - `vcu` is legacy — use `diem`.
 - `expiresAt` of empty string `""` means "no expiration" in CREATE; on UPDATE it **removes** an existing one.
 - Rate-limit log is capped at 50 entries — pull it frequently if debugging bursts.
