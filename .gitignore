@@ -1,3 +1,4 @@
+
 # OS
 .DS_Store
 Thumbs.db
@@ -37,3 +38,6 @@ venv/
 dist/
 build/
 out/
+
+# eyebrow local snapshot cache (regenerated on scan)
+.eyebrow/

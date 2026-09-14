@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "name": "venice-skills",
+  "skills": ["skills/*"],
+  "harvest": ["scripts/*"]
+}

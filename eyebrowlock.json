@@ -1,0 +1,664 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-14T11:13:50.178322Z",
+  "generator": "eyebrow/0.4.7",
+  "artifacts": [
+    {
+      "id": "0bd48bd42e869278",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-characters",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-characters"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "e7bbc80112ab55c415893ce90aacf5975bc1b3a7cf56f797ee05675b97fab19d"
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 145,
+          "snippet": "headers: { Authorization: `Bearer ${process.env.VENICE_API_KEY}` },",
+          "explanation": "references sensitive credential or secret paths"
+        }
+      ],
+      "contentHash": "sha256-7accb5312e325a8bc9f315729ec4e1a1e3c501f231fd49d105d5420571229e6e",
+      "discoveredFrom": "skills/venice-characters/SKILL.md"
+    },
+    {
+      "id": "1161f8f8c0138339",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-image-edit",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-image-edit"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "00bfd0e34ff92f1cf862a77c7219f95f6427c9342d680c6cb15c5b0e6cf1da76"
+        }
+      ],
+      "contentHash": "sha256-2685efc2b31074aaa387202b60bea885c813d9d69257f6db1ca9399a7dec4b70",
+      "discoveredFrom": "skills/venice-image-edit/SKILL.md"
+    },
+    {
+      "id": "1c29d79853219af9",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-video",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-video"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "14ee932f262bde0221bce8b9a4d044cb17323b409b21d6e942f05b174331845b"
+        }
+      ],
+      "contentHash": "sha256-8a2297df4d6d63e6a783affa48adf45be1867bd2855511b5a9acf10250d6f250",
+      "discoveredFrom": "skills/venice-video/SKILL.md"
+    },
+    {
+      "id": "1dcc3b1a20b375e9",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-models",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-models"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "43eb32f2c57b5a8ddecd500877033caf3692f1c92cb2181c4d1560f679e8d622"
+        }
+      ],
+      "contentHash": "sha256-3287e3b48a786ce5e4aad00e87fdd489d27714bf3f8da0bdb443a3542c3b7c08",
+      "discoveredFrom": "skills/venice-models/SKILL.md"
+    },
+    {
+      "id": "2b6e65fd30a1919f",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-crypto-rpc",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-crypto-rpc"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "d5d641ca680601c6eff8f71743bc9c2c22d18ffea803ea99abcc137356236437"
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 92,
+          "snippet": "fetchOptions: { headers: { Authorization: `Bearer ${process.env.VENICE_API_KEY}` } },",
+          "explanation": "references sensitive credential or secret paths"
+        }
+      ],
+      "contentHash": "sha256-a78b9f7988628fc7e98f674ab72e8f98624b89fc7a89a22d53a88a65af434f53",
+      "discoveredFrom": "skills/venice-crypto-rpc/SKILL.md"
+    },
+    {
+      "id": "3313fe486eae2bb6",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-x402",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-x402"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "902bd6fb1f66d1e0ce9db815d9d61006432ba8e142881e914c938729cd83dc43"
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 128,
+          "snippet": "const wallet = new Wallet(process.env.WALLET_KEY!)",
+          "explanation": "references sensitive credential or secret paths"
+        }
+      ],
+      "contentHash": "sha256-439ce4b894231a1e97e725777bc7e1d17e152ae494e42a1204fd3cbf1a5922a0",
+      "discoveredFrom": "skills/venice-x402/SKILL.md"
+    },
+    {
+      "id": "356bbd4a68d861fd",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-text-routing",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-text-routing"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai",
+          "docs.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "d248af3710b090067320fd17114dbc1528a3b3fb522769651464d8a5b43f4f24"
+        },
+        {
+          "path": "routing-matrix.md",
+          "hash": "84c1a2dd8499c9b5a5a1fd2a533fcbddd7474340201b176c6b8e8d84088f2e97"
+        },
+        {
+          "path": "scripts/refresh_routing.py",
+          "hash": "d99ae377430f72954840c271a59cbc85b9c5e434062db8bb92599bc73272d476"
+        },
+        {
+          "path": "snapshots/text-routing.json",
+          "hash": "4a827545cd51b59214a0d571ad5d30bdad4dbb1e503d3ac0054f600a610b337d"
+        }
+      ],
+      "contentHash": "sha256-0ac77ede46ab2899c5d2c0a6d7af6dbdf1ff3c917096dbb252cad108e9328126",
+      "discoveredFrom": "skills/venice-text-routing/SKILL.md"
+    },
+    {
+      "id": "41b374efef7568ba",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-audio-music",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-audio-music"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "23a0634f475a97b997a7dd9d7be0030dab1a11c4b626077a2901e3a2a1b1be39"
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 112,
+          "snippet": "Authorization: `Bearer ${process.env.VENICE_API_KEY}`,",
+          "explanation": "references sensitive credential or secret paths"
+        }
+      ],
+      "contentHash": "sha256-ae97c8a597994b8ea604ef57e4f2d77378b6f912882abff6c8318bf951479dd2",
+      "discoveredFrom": "skills/venice-audio-music/SKILL.md"
+    },
+    {
+      "id": "4aa05028a883e68d",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-audio-transcription",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-audio-transcription"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "0b0b4e80796e7473d1883900cc80614bd361701e4ac3d778bfd0cd8e533b72e5"
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 64,
+          "snippet": "apiKey: process.env.VENICE_API_KEY,",
+          "explanation": "references sensitive credential or secret paths"
+        }
+      ],
+      "contentHash": "sha256-964ec784ebc951107ae41368943a56706b0efea9b225fe9c7e15cd3b4b47c47e",
+      "discoveredFrom": "skills/venice-audio-transcription/SKILL.md"
+    },
+    {
+      "id": "517c91c138b9d9c0",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-chat",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-chat"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "e5d649f0f4c33e07bd96c43f57f26cd7c6b5a41e99f6751cc6cfb4fb569ee237"
+        }
+      ],
+      "contentHash": "sha256-06ca9d37c21d2caa2e57f2174a2b9362a7f9c00e6a7ddfd6f8ad2d9a9f607ab9",
+      "discoveredFrom": "skills/venice-chat/SKILL.md"
+    },
+    {
+      "id": "5be602a1d8560044",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-audio-speech",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-audio-speech"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "2415f4b4821fcb41fca84f58d50c53545db8149e220a130d97da455d8884a200"
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 139,
+          "snippet": "apiKey: process.env.VENICE_API_KEY,",
+          "explanation": "references sensitive credential or secret paths"
+        }
+      ],
+      "contentHash": "sha256-c1d267b69402a879709afb5c1e167f10f4cf62349442f4b5d01e7e6621b9dc71",
+      "discoveredFrom": "skills/venice-audio-speech/SKILL.md"
+    },
+    {
+      "id": "5f1f22e473c30a33",
+      "tool": "codex",
+      "scope": "project:.",
+      "type": "context",
+      "name": "AGENTS",
+      "source": {
+        "kind": "local",
+        "ref": "AGENTS.md"
+      },
+      "capabilities": {},
+      "files": [
+        {
+          "path": "AGENTS.md",
+          "hash": "96b8c7258e7174e6929b20b2aca2cda27269d3308f3c0a2ac9dc6e8cc19418d4"
+        }
+      ],
+      "contentHash": "sha256-89763d8fe3642fbabc7594bfa78101db77ab354b23fd3370abcf91aa719d7c4f",
+      "discoveredFrom": "AGENTS.md"
+    },
+    {
+      "id": "73c6b349934ae251",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-auth",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-auth"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "b1d36d23b38fc2474f55e973d837d98b526b3d47a7b206737366a849ed3daf69"
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 131,
+          "snippet": "const wallet = new Wallet(process.env.WALLET_KEY!)",
+          "explanation": "references sensitive credential or secret paths"
+        },
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 178,
+          "snippet": "const venice = new VeniceClient(process.env.WALLET_KEY!)",
+          "explanation": "references sensitive credential or secret paths"
+        },
+        {
+          "ruleId": "WALLET-THEFT",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 230,
+          "snippet": "- SIWX requires a private key signer on the client side. For browsers, use a wallet provider (MetaMask or WalletConnect …",
+          "explanation": "references cryptocurrency wallet or seed-phrase material"
+        }
+      ],
+      "contentHash": "sha256-60505b722c38292ae19210210491f9bda77d16747f9f0dc39784afeae39e5471",
+      "discoveredFrom": "skills/venice-auth/SKILL.md"
+    },
+    {
+      "id": "9b195d5537b3826b",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-billing",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-billing"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "5d03ec4bcf5973752508889e101f61e289c0089e6c04e94b214ddd5ac58ef656"
+        }
+      ],
+      "contentHash": "sha256-ef83d8b5d85520e7171ef058eab6ad500a5bbf50a2012abf5a9b5c600381c682",
+      "discoveredFrom": "skills/venice-billing/SKILL.md"
+    },
+    {
+      "id": "9bceb1b94e298a4f",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-api-overview",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-api-overview"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "aa5d4e76bc1f5f3ac56ea0d669c30c96fafa937fe026cc10296e8b091f4fe32a"
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 43,
+          "snippet": "const v = new VeniceClient(process.env.WALLET_KEY)",
+          "explanation": "references sensitive credential or secret paths"
+        }
+      ],
+      "contentHash": "sha256-c5ebae49916aa825648b74f8c3164ec06c7c40d3332dded1e1c8ef1c47e52632",
+      "discoveredFrom": "skills/venice-api-overview/SKILL.md"
+    },
+    {
+      "id": "acb4ebbbdfdc76d5",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-embeddings",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-embeddings"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "af5cb8f4a932401faa1005cce4a1c057f4aa111dcb2a76fe2d8eb681d0b95a52"
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 66,
+          "snippet": "apiKey: process.env.VENICE_API_KEY,",
+          "explanation": "references sensitive credential or secret paths"
+        }
+      ],
+      "contentHash": "sha256-c9d457b587ec692c5ed82a058cbad06667c4ca60501b3930ea6ece5e97fd7431",
+      "discoveredFrom": "skills/venice-embeddings/SKILL.md"
+    },
+    {
+      "id": "e87973f12a750ac8",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-errors",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-errors"
+      },
+      "capabilities": {},
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "47daec679be50c5c9ba8e407d6b16a5a7342c81e14fc6a518aaa62eacae59638"
+        }
+      ],
+      "contentHash": "sha256-cea8b67a39ef3e7848e4dc724f11f8bababedb72005d2f2e5cf41d887255b60a",
+      "discoveredFrom": "skills/venice-errors/SKILL.md"
+    },
+    {
+      "id": "e9285f6dbf403f01",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-augment",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-augment"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "e8045a0ffcc35b9cb04f1a87f0aec18956876b53c222efde831310384225591e"
+        }
+      ],
+      "contentHash": "sha256-4498d5d723825d32c08d8a11ae2b22cb2ddd860d6c398300f41e000540601dc6",
+      "discoveredFrom": "skills/venice-augment/SKILL.md"
+    },
+    {
+      "id": "eb2e5c4805cdf0e8",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-responses",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-responses"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "30c725850a72bac3fa15809e1eaf4d97d86bc5dd5600ec9627f87dbaa0cd3081"
+        }
+      ],
+      "contentHash": "sha256-25e66d2d3f03aceeecefe501b1607d4235629d458724276173f3cc8ae29e039a",
+      "discoveredFrom": "skills/venice-responses/SKILL.md"
+    },
+    {
+      "id": "ee60542e011a4322",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-api-keys",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-api-keys"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "e84fd012564e93acf9f48af8b92eaf9f2bdf1ff8bf8f00fd00fdd900fd9b0776"
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 201,
+          "snippet": "const wallet = new Wallet(process.env.WALLET_KEY!)",
+          "explanation": "references sensitive credential or secret paths"
+        }
+      ],
+      "contentHash": "sha256-74eaa34650bb3b6a89e6614ba1c8ecc144dcd62eb7a9dd2faf20b276524a504a",
+      "discoveredFrom": "skills/venice-api-keys/SKILL.md"
+    },
+    {
+      "id": "ffebea86d7dfb6ae",
+      "tool": "venice-skills",
+      "scope": "project:.",
+      "type": "skill",
+      "name": "venice-image-generate",
+      "source": {
+        "kind": "local",
+        "ref": "skills/venice-image-generate"
+      },
+      "capabilities": {
+        "network": [
+          "api.venice.ai"
+        ]
+      },
+      "files": [
+        {
+          "path": "SKILL.md",
+          "hash": "6ee379c5b7b05778eb98b38727537b644c5600996642da179be74ef58274718e"
+        }
+      ],
+      "findings": [
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 99,
+          "snippet": "apiKey: process.env.VENICE_API_KEY,",
+          "explanation": "references sensitive credential or secret paths"
+        },
+        {
+          "ruleId": "SENSITIVE-PATH-READ",
+          "severity": "high",
+          "owasp": "ASK-06",
+          "file": "SKILL.md",
+          "line": 205,
+          "snippet": "headers: { Authorization: `Bearer ${process.env.VENICE_API_KEY}`, 'Content-Type': 'application/json' },",
+          "explanation": "references sensitive credential or secret paths"
+        }
+      ],
+      "contentHash": "sha256-7d5ef1f80eaca0898a075fe8da09504d71b63f9dc2b3fc4957c634ed3471f161",
+      "discoveredFrom": "skills/venice-image-generate/SKILL.md"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+name: skill-integrity
+
+# Integrity gate for the Venice skill catalog.
+#
+# sync.yml tells us when the API moved and a skill lags. Nothing tells us when
+# a skill changed after review: a new endpoint on a curl line, a new host in
+# scripts/refresh_routing.py. These skills teach an agent to sign USDC top-ups,
+# hold WALLET_KEY, and push JSON-RPC to mainnets, so that post-review edit is
+# the change worth a status check.
+#
+# eyebrow records every skills/<slug> directory in eyebrowlock.json: a content
+# hash of the whole directory and the hosts it reaches, from call lines in
+# SKILL.md and from every URL in scripts/*. eyebrow.discover.json tells eyebrow
+# where the skills live, so no marker file and no eyebrow release is needed
+# for the layout. Per eyebrow.policy.json this job fails only when a skill,
+# compared with the lockfile:
+#   - gains a new host, or
+#   - introduces a new critical finding.
+# Wording changes pass (allowContentDrift) and are reported in the log, so the
+# bot-authored sync PRs keep merging without a lockfile refresh.
+#
+# What the fingerprint does not cover, stated plainly: a URL assembled from
+# variables, a URL split across lines, a new path on a host the skill already
+# reaches, and a changed address inside a SKILL.md string such as payTo. The
+# lockfile hash records those as content drift, which this policy reports and
+# passes. See docs/skill-integrity.md.
+#
+# When a skill legitimately gains a host, refresh the lockfile in the same PR:
+#   eyebrow scan --path . --lockfile eyebrowlock.json
+# The diff on eyebrowlock.json is the audit trail of what reach changed.
+#
+# The action is pinned by commit SHA; the version input selects the eyebrow
+# release to install, and its published checksums guard the download.
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'skills.json'
+      - 'AGENTS.md'
+      - 'eyebrow.discover.json'
+      - 'eyebrowlock.json'
+      - 'eyebrow.policy.json'
+      - '.github/workflows/skill-integrity.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'skills/**'
+      - 'skills.json'
+      - 'AGENTS.md'
+      - 'eyebrow.discover.json'
+      - 'eyebrowlock.json'
+      - 'eyebrow.policy.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # A skill listed in skills.json but absent from the lockfile has no
+      # baseline to expand against, so it would pass ungated. skills.json is
+      # the catalog's own source of truth; this step holds the lockfile to it.
+      - name: lockfile covers every skill in skills.json
+        run: |
+          missing=0
+          for p in $(jq -r '.skills[].path' skills.json); do
+            grep -q "\"discoveredFrom\": \"$p\"" eyebrowlock.json || {
+              echo "::error::$p has no eyebrowlock.json entry; run: eyebrow scan --path . --lockfile eyebrowlock.json and commit the result"
+              missing=1
+            }
+          done
+          exit "$missing"
+      - name: eyebrow verify
+        uses: alexverify/eyebrow/action@3618f9a268e324227d91bc4c42cf7f988807a7ab # v0.4.7
+        with:
+          version: v0.4.7
+          path: .
+          lockfile: eyebrowlock.json
