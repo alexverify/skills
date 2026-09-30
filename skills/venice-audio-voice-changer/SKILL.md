@@ -102,7 +102,7 @@ Response:
 | `remove_background_noise` | Boolean (`"true"` / `"false"` in multipart). |
 | `seed` | Non-negative integer, for reproducible output. |
 
-The body is strict — unknown fields → `400`. Everything you could fix (format, length, voice, seed, balance) is checked **before** you're charged.
+The body is strict — unknown fields → `400`. Format, length, seed and balance are checked **before** you're charged. A voice the provider rejects at queue time returns `400`, and any charge is refunded immediately.
 
 ### 3. `POST /audio/voice-changer/retrieve`
 

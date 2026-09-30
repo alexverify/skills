@@ -38,7 +38,6 @@ curl https://api.venice.ai/api/v1/image/generate \
     "width": 1024,
     "height": 1024,
     "cfg_scale": 7.5,
-    "steps": 8,
     "seed": 123456789,
     "variants": 1,
     "format": "webp",
@@ -55,25 +54,25 @@ The request schema is **strict**: unknown fields are rejected with `400`.
 |---|---|---|---|
 | `model` | string | — | **Required.** Image model ID from `GET /models?type=image`. Unknown IDs return `404` (with a suggestion); retired IDs return `404` naming the replacement when one exists. |
 | `prompt` | string | — | **Required.** Non-blank. Max `constraints.promptCharacterLimit` for the model (1,500 – 32,768 today). |
-| `negative_prompt` | string | — | What *not* to show. Same character cap as `prompt`. Silently dropped by models that don't support negative prompts (most hosted third-party models). |
+| `negative_prompt` | string | — | What *not* to show. Same character cap as `prompt`. Only used by some models today (e.g. `venice-sd35`, `lustify-*`, `wai-Illustrious`, `qwen-image-2`, `qwen-image-2-pro`, `qwen-image-3`, `qwen-image-3-pro`, `wan-2-7-*`). Silently dropped everywhere else, including `z-image-turbo` and `chroma`. |
 | `width`, `height` | int | 1024, 1024 | ≤ 1280 each. Only used by pixel-sized models (no `constraints.aspectRatios`). Aspect-ratio models ignore them, and `qwen-image`, `qwen-image-3`, `qwen-image-3-pro` **reject** them with `400` — use `aspect_ratio`. |
 | `aspect_ratio` | string | model default | E.g. `"1:1"`, `"16:9"`, `"4:3"`. Send only values from the model's `constraints.aspectRatios`. `/image/generate` doesn't validate this field: most models fall back to `defaultAspectRatio`, but some pass it upstream and fail. |
 | `resolution` | string | model default | `"1K"`, `"2K"`, `"4K"`. Must be in the model's `constraints.resolutions` (otherwise `400`). Silently dropped for models with no `resolutions`. |
 | `quality` | `"low"`/`"medium"`/`"high"` | model default | Only for models with `constraints.qualities` (GPT Image 2 / 2.5, Grok Imagine 2.0). A value outside that list is `400`; ignored on other models. Changes the price — see `pricing.quality`. |
 | `cfg_scale` | number | model default | `0 < x ≤ 20`. Higher = more prompt adherence. |
-| `steps` | int | `min(steps.max, 20)` | `1..constraints.steps.max`; above max is `400`. Ignored by models that don't take steps (most hosted models). |
-| `seed` | int | random | `-999999999..999999999`. Omit for a random seed (`0` is a literal seed, not "random"). Some hosted models ignore it (e.g. GPT Image, Muse, Luma, Recraft, Seedream V5 Pro). |
+| `steps` | int | `min(steps.max, 20)` | Only used by models that take steps (today `venice-sd35`, `lustify-*`, `wai-Illustrious`); on those it is `1..constraints.steps.max` and above max is `400`. Every other model, including `z-image-turbo` and `chroma`, accepts any integer and ignores it. |
+| `seed` | int | random | `-999999999..999999999`. Omit for a random seed (`0` is a literal seed, not "random"). Some models ignore it (e.g. GPT Image, Muse, Luma, Recraft, ImagineArt, Seedream V5 Pro, Nano Banana Pro, Grok Imagine). |
 | `variants` | int | 1 | 1–4. Only with `return_binary: false`. Only the **first** image uses your `seed`; the others get random seeds. Each variant is billed and rate-limited as one image. |
 | `style_preset` | string | — | Exact value from `GET /image/styles`; anything else is `400`. |
 | `style_references` | array | — | Reference images that guide the aesthetic. Each item: `{ "image": <raw base64, data URI, or http(s) URL; < 8 MB; not SVG>, "strength": 0.1–1 (default 0.5) }`. Only on models with `supportsStyleReferences: true`, max `constraints.maxStyleReferences` entries; otherwise `400`. `strength` is ignored when `constraints.supportsStyleReferenceStrength` is `false`. |
 | `lora_strength` | int | — | 0–100. Only applies to models that use LoRAs. |
 | `enhance_prompt` | bool | `false` | Rewrites the prompt to add visual detail before generating. Adds up to ~30 s and a $0.04 charge when a rewrite is produced (fails open to your original prompt). The final prompt comes back URL-encoded in the `x-venice-enhanced-prompt` response header. |
 | `disable_prompt_optimization_thinking` | bool | model default | Skip the model's prompt-optimization thinking step for speed. Only honored by models with `supportsOptimizePromptThinking: true` (e.g. `seedream-v5-pro`, `qwen-image-3`). |
-| `enable_web_search` | bool | `false` | Only for models with `supportsWebSearch: true` (currently `nano-banana-2`, `nano-banana-pro`). The spec says extra credits are charged when search is used. |
+| `enable_web_search` | bool | `false` | Only for models with `supportsWebSearch: true` (currently `nano-banana-2`, `nano-banana-pro`); ignored elsewhere. The spec warns that search can cost extra, but today the per-image charge is the same with or without it. |
 | `format` | `"webp"`/`"png"`/`"jpeg"` | `webp` | Output image format. |
 | `return_binary` | bool | `false` | `true` → raw image bytes; `false` → JSON with base64. |
 | `embed_exif_metadata` | bool | `false` | Embed prompt info in EXIF. |
-| `hide_watermark` | bool | `false` | Only matters on Venice-hosted models such as `z-image-turbo`, `venice-sd35`, `chroma`, `lustify-*`. Models not hosted by Venice are never watermarked. Venice may still watermark some content. |
+| `hide_watermark` | bool | `false` | Only matters on Venice's flat-priced models (`z-image-turbo`, `venice-sd35`, `chroma`, `lustify-*`, `wai-Illustrious`). All other models are never watermarked. Images classified as adult content and very small images are never watermarked either. |
 | `safe_mode` | bool | `true` | Blurs images classified as adult content. |
 | `anon_user_id` | string | — | Optional end-user identifier (printable ASCII, ≤ 128 chars, no `\|\|`) forwarded for upstream attribution. |
 | `inpaint` | — | — | **Removed** (disabled May 19 2025). Sending it is a `400`. Use [`/image/edit`](../venice-image-edit/SKILL.md). |
@@ -85,7 +84,7 @@ The request schema is **strict**: unknown fields are rejected with `400`.
   "id": "...",
   "images": ["<base64>", "<base64>"],
   "timing": { "inferenceDuration": 0, "inferencePreprocessingTime": 0, "inferenceQueueTime": 0, "total": 0 },
-  "request": { "...": "echo of the parsed request (style_references omitted)" }
+  "request": { "success": true, "data": { "...": "the parsed request with defaults filled in (style_references omitted)" } }
 }
 ```
 
@@ -101,6 +100,7 @@ With `return_binary: true`, the body is the raw image; `Content-Type` is detecte
 | `x-venice-is-blurred` | `"true"` if `safe_mode` blurred the output. |
 | `x-venice-enhanced-prompt` | URL-encoded rewritten prompt (only when `enhance_prompt` produced one). |
 | `x-venice-model-deprecation-warning`, `x-venice-model-deprecation-date`, `x-venice-deprecated`, `x-venice-deprecated-replacement` | Present when the model is scheduled for or already in deprecation. |
+| `x-ratelimit-{limit,remaining,reset}-*`, `x-venice-balance-usd`, `x-venice-balance-diem` | Rate-limit and balance state, set before the image is generated. |
 | `X-Balance-Remaining` | Listed in the spec for x402 callers but not currently set by the server — poll `GET /x402/balance/{walletAddress}` instead. |
 
 ## `/images/generations` — OpenAI-compatible
@@ -129,7 +129,7 @@ const b64 = res.data[0].b64_json
 
 | Field | Values | Notes |
 |---|---|---|
-| `model` | string, default `"default"` | Unknown model IDs (e.g. `dall-e-3`) silently fall back to Venice's default image model (`z-image-turbo`). |
+| `model` | string | Required in practice: omitting it (or sending `""`) returns `404 Model is required`, even though the spec lists a `"default"` default. Unknown IDs (e.g. `dall-e-3`) silently fall back to Venice's default image model (`z-image-turbo`). |
 | `prompt` | string, 1–1500 chars | Required. 1500 is the cap here regardless of model. |
 | `size` | `auto` (default → 1024×1024), `256x256`, `512x512`, `1024x1024`, `1536x1024`, `1024x1536`, `1792x1024`, `1024x1792` | Mapped to width/height, so it only affects pixel-sized models; aspect-ratio models use their default aspect ratio. |
 | `output_format` | `jpeg` / `png` / `webp` | Defaults to `png`. |
@@ -137,7 +137,7 @@ const b64 = res.data[0].b64_json
 | `moderation` | `auto` (default, safe mode on) / `low` (safe mode off) | — |
 | `n` | `1` | Only one image per call. |
 | `anon_user_id` | string | Same as on `/image/generate`. |
-| `quality`, `style`, `background`, `output_compression`, `user` | — | Accepted for OpenAI compatibility and ignored (`user` is discarded; it is not an alias of `anon_user_id`). |
+| `quality`, `style`, `background`, `output_compression`, `user` | — | Accepted for OpenAI compatibility and ignored, but values must still be valid (`quality`: `auto`/`high`/`medium`/`low`/`hd`/`standard`; `style`: `vivid`/`natural`; `background`: `transparent`/`opaque`/`auto`; `output_compression`: 0–100). `user` is discarded; it is not an alias of `anon_user_id`. |
 
 Response: `{ "created": <unix>, "data": [{ "b64_json": "..." }] }` (or `[{ "url": "data:image/png;base64,..." }]`). Images from this endpoint are never watermarked. Unknown fields are rejected with `400`.
 
@@ -155,7 +155,7 @@ No API key needed. Returns a list of strings:
 { "object": "list", "data": ["3D Model", "Analog Film", "Anime", "Cinematic", "Comic Book", "..."] }
 ```
 
-Pass any `data[]` entry verbatim as `style_preset` (it is case-sensitive). Cache it; the list is static.
+Pass any `data[]` entry verbatim as `style_preset` (it is case-sensitive). Cache it; the list rarely changes.
 
 ## Choosing a model
 
@@ -169,11 +169,11 @@ Inspect each model's `model_spec`:
 - `constraints.aspectRatios[]` + `defaultAspectRatio` — present on aspect-ratio-driven models; use `aspect_ratio` instead of `width`/`height`.
 - `constraints.resolutions[]` + `defaultResolution` — present when the model accepts `resolution`.
 - `constraints.qualities[]` + `defaultQuality` — present when the model accepts `quality`.
-- `constraints.steps.{default,max}` — step bounds (many hosted models ignore `steps`).
+- `constraints.steps.{default,max}` — step bounds. Every model lists them, but only a few use `steps` (see the field table).
 - `constraints.widthHeightDivisor` — pixel-sized models work best with `width`/`height` as multiples of this (8 or 16). The API does not validate it.
 - `supportsStyleReferences`, `constraints.maxStyleReferences`, `constraints.supportsStyleReferenceStrength` — style-reference support.
 - `supportsWebSearch`, `supportsOptimizePromptThinking` — whether those request flags do anything.
-- `privacy` (`private` / `anonymized`) and `uncensored` — routing and content posture.
+- `privacy` (`private` / `anonymized`) and `uncensored` — privacy tier and content posture.
 - Pricing: `pricing.generation.usd` (flat per image), or `pricing.resolutions[tier].usd` for resolution-tiered models, plus `pricing.quality[tier][level].usd` for quality-tiered models.
 
 Representative IDs (verify with `GET /models?type=image` — the list changes often):
@@ -195,7 +195,7 @@ Representative IDs (verify with `GET /models?type=image` — the list changes of
 {"model": "z-image-turbo", "prompt": "...", "seed": 42}
 ```
 
-On models that honor `seed` (e.g. `z-image-turbo`, `seedream-v4`, `nano-banana-2`), the same model + prompt + seed + settings gives the same image. With `variants > 1`, only the first image uses `seed`; the rest are random, so run separate calls with different seeds if you need each one reproducible.
+On models that honor `seed` (e.g. `z-image-turbo`, `seedream-v4`, `nano-banana-2`), the same model + prompt + seed + settings should reproduce the same image, though third-party models don't guarantee bit-identical output. With `variants > 1`, only the first image uses `seed`; the rest are random, so run separate calls with different seeds if you need each one reproducible.
 
 ### Aspect-ratio + resolution model (Nano Banana, Seedream V5 Pro)
 
@@ -217,9 +217,11 @@ Omitting `quality` uses `defaultQuality` (`high` for the GPT Image models). The 
 
 ### Style preset + negative
 
+Use a model that honors `negative_prompt` (see the field table); `z-image-turbo` silently drops it.
+
 ```json
 {
-  "model": "z-image-turbo",
+  "model": "venice-sd35",
   "prompt": "a red sports car in a parking lot",
   "negative_prompt": "blurry, people, clouds",
   "style_preset": "3D Model"
@@ -239,7 +241,7 @@ Omitting `quality` uses `defaultQuality` (`high` for the GPT Image models). The 
 }
 ```
 
-Describe the **subject** in the prompt; the references carry the **style**. Today the supporting models are `krea-v2-large` / `krea-v2-medium` (up to 3 refs, strength honored) and `luma-uni-1` / `luma-uni-1-max` (up to 3 refs, strength ignored). All four use anonymized routing. Re-check `supportsStyleReferences` via `GET /models?type=image`. The Krea V2 models add a small per-request surcharge when references are used.
+Describe the **subject** in the prompt; the references carry the **style**. Today the supporting models are `krea-v2-large` / `krea-v2-medium` (up to 3 refs, strength honored) and `luma-uni-1` / `luma-uni-1-max` (up to 3 refs, strength ignored). All four are `anonymized` models. Re-check `supportsStyleReferences` via `GET /models?type=image`. The Krea V2 models add a small per-request surcharge when references are used; it isn't itemized in the `/models` pricing.
 
 ### Stream binary to disk (Node)
 
@@ -260,13 +262,13 @@ await fs.writeFile(`out.${ext}`, buf)
 
 | Code | Meaning |
 |---|---|
-| `400` | Bad params: schema violation, unknown field, prompt too long, `steps` above max, invalid `style_preset`, unsupported `resolution`/`quality` for the model, `width`/`height` sent to Qwen Image models, `variants` with `return_binary: true`, `style_references` on an unsupported model or over the cap, unreachable/corrupt reference image. |
+| `400` | Bad params: schema violation, unknown field, prompt too long, `steps` above max (on models that use steps), invalid `style_preset`, unsupported `resolution`/`quality` for the model, `width`/`height` sent to `qwen-image`/`qwen-image-3`/`qwen-image-3-pro`, `variants` with `return_binary: true`, `style_references` on an unsupported model or over the cap, unreachable/corrupt reference image. |
 | `401` | Auth failed. |
-| `402` | Insufficient balance. Bearer: `INSUFFICIENT_BALANCE` error; x402: `PAYMENT_REQUIRED` body + `PAYMENT-REQUIRED` header. |
-| `403` | The API key's `modelPrivacy` setting blocks this model (e.g. a `PRIVATE_ONLY` key calling an `anonymized` model), or access is region/provider restricted. |
-| `404` | Model not found, missing, or retired (message names the replacement when there is one). `/images/generations` never returns this; it falls back to the default model. |
-| `422` | Reference image too large in pixels. |
-| `429` | Rate limited, or the upstream provider is overloaded. |
+| `402` | No credentials at all (x402 payment-requirements body + `PAYMENT-REQUIRED` header), insufficient balance (Bearer: `INSUFFICIENT_BALANCE`; x402 wallet: `PAYMENT_REQUIRED` body + header), or the API key's USD/DIEM spend limit is reached. |
+| `403` | The API key's `modelPrivacy` setting blocks this model (e.g. a `PRIVATE_ONLY` key calling an `anonymized` model), or the model is unavailable in your region or restricted for your account. |
+| `404` | Model not found, missing, or retired (message names the replacement when there is one). On `/images/generations`, only a missing `model` returns `404`; unknown IDs fall back to the default model. |
+| `422` | Reference image too large in pixels (over 7680×4320). |
+| `429` | Rate limited, or the upstream provider is overloaded (`Retry-After` is set). |
 | `500` | Inference failed. |
 | `503` | Model at capacity or offline. Retry with jitter. |
 
@@ -274,7 +276,7 @@ Content-policy violations are **not** an error on these endpoints. You get `200`
 
 ## Gotchas
 
-- Each model uses one sizing idiom: `width`/`height`, or `aspect_ratio` (+ `resolution`). Read `constraints` first. Sending `width`/`height` to an aspect-ratio model is silently ignored, except on the Qwen Image models, where it is a `400`.
+- Each model uses one sizing idiom: `width`/`height`, or `aspect_ratio` (+ `resolution`). Read `constraints` first. Sending `width`/`height` to an aspect-ratio model is silently ignored, except on `qwen-image`, `qwen-image-3`, and `qwen-image-3-pro`, where it is a `400`.
 - `aspect_ratio` isn't validated on `/image/generate`, so a value the model doesn't list usually falls back to its default without an error. A `resolution` or `quality` the model doesn't list is a `400`.
 - `variants > 1` requires `return_binary: false`.
 - Grok Imagine models return the provider's bytes unchanged when nothing is blurred, so the output format may not match `format` and EXIF isn't embedded. Trust `Content-Type`, or sniff the bytes.

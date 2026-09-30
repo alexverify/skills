@@ -19,7 +19,7 @@ description: Generate speech from text via POST /audio/speech, and clone a voice
 - You want streaming audio returned as it is generated.
 - You need style/emotion control on supported models, or synthesis in a cloned voice.
 
-For music, sound effects and the character-priced ElevenLabs TTS v3/v4 models (async), see [`venice-audio-music`](../venice-audio-music/SKILL.md). For transcription (audio → text), see [`venice-audio-transcription`](../venice-audio-transcription/SKILL.md).
+For music, sound effects and the character-priced ElevenLabs TTS models — v3, v4, v4 Turbo, Multilingual v2 — (async), see [`venice-audio-music`](../venice-audio-music/SKILL.md). For transcription (audio → text), see [`venice-audio-transcription`](../venice-audio-transcription/SKILL.md).
 
 ## Minimal request
 
@@ -49,14 +49,14 @@ The body is strict — unknown fields return `400`.
 | `model` | string | — | **Send it.** The OpenAPI schema lists a `tts-kokoro` default, but that default is never applied: omitting `model` returns `404 "Model is required"`. Unknown id → `404`. |
 | `voice` | string, ≤ 512 | the model's default voice | Voices are model-specific; a voice from another model → `400`. Also accepts a cloned-voice handle (`vv_…`) from `POST /audio/voices` (same `model` that created it), and — on models with `supports_custom_voice_id: true` (currently `tts-elevenlabs-turbo-v2-5`) — a raw provider Voice ID. |
 | `response_format` | `mp3` / `opus` / `aac` / `flac` / `wav` / `pcm` | the model's `default_format` | **Support is per model** — read `model_spec.supported_formats` / `default_format`. Requesting a format the model doesn't support → `400`. |
-| `speed` | number | `1.0` | Schema range `0.25–4.0`. Honored in full by Kokoro; clamped by xAI (`0.7–1.5`), ElevenLabs Turbo (`0.7–1.2`) and MiniMax (`0.5–2`); ignored by the other models. |
+| `speed` | number | `1.0` | Schema range `0.25–4.0`. Passed to Kokoro unchanged; clamped by xAI (`0.7–1.5`), ElevenLabs Turbo (`0.7–1.2`) and MiniMax (`0.5–2`); ignored by the other models. |
 | `streaming` | bool | `false` | `true` → chunked audio stream as it's generated. `false` → buffered file with `Content-Length`. |
-| `language` | string, 2–32 chars | — | Optional hint; form is model-specific (see below). Unsupported values are silently ignored. |
+| `language` | string, 2–32 chars | — | Optional hint; form is model-specific (see below). Most models drop values they don't accept; xAI passes the value through as given. |
 | `prompt` | string, ≤ 500 | — | Style/emotion instruction. Used by Qwen 3 and Gemini Flash (sent as style instructions); ignored elsewhere. |
 | `temperature` | number, 0–2 | — | Used by Qwen 3, Orpheus, Chatterbox HD, Gemini Flash; ignored elsewhere. |
 | `top_p` | number, 0–1 | — | Qwen 3 only; ignored elsewhere. |
 
-`language` by model: Qwen 3 → full names (`English`, `Chinese`, …; default auto); xAI → ISO 639-1 (`en`; default auto); ElevenLabs Turbo → ISO 639-1 (values longer than 5 chars dropped); MiniMax → full names (sent as a language boost); Gemini Flash → full locale strings such as `English (US)` or `Japanese (Japan)` (anything else dropped). Kokoro, Inworld, Chatterbox, Orpheus and Gradium ignore it.
+`language` by model: Qwen 3 → full names (`English`, `Chinese`, …; default auto); xAI → ISO 639-1 (`en`), passed through as given, so send a valid code (default auto); ElevenLabs Turbo → ISO 639-1 (values longer than 5 chars dropped); MiniMax → full names (sent as a language boost); Gemini Flash → full locale strings such as `English (US)` or `Japanese (Japan)` (anything else dropped). Kokoro, Inworld, Chatterbox, Orpheus and Gradium ignore it.
 
 ## Models
 
@@ -64,10 +64,10 @@ Every id below is in the live `GET /models?type=tts` list. Prices are `model_spe
 
 | Model ID | Default voice | Formats (default first) | Privacy | Notes |
 |---|---|---|---|---|
-| `tts-kokoro` | `af_sky` | mp3, opus, aac, flac, wav, pcm | private | Multilingual via voice prefix. Full `speed` range. |
+| `tts-kokoro` | `af_sky` | mp3, opus, aac, flac, wav, pcm | private | Multilingual via voice prefix. `speed` passed through unclamped. |
 | `tts-qwen3-0-6b` / `tts-qwen3-1-7b` | `Vivian` | mp3 | private | `prompt`, `temperature`, `top_p`, `language`. |
 | `tts-xai-v1` | `eve` | mp3, wav, pcm | anonymized | 26 voices, ISO `language`. |
-| `tts-inworld-1-5-max` | `Craig` | wav | anonymized | Low-latency character voices. |
+| `tts-inworld-1-5-max` | `Craig` | wav | anonymized | Low-latency; all voices are English. |
 | `tts-chatterbox-hd` | `Aurora` | wav | private | `temperature`. **Voice cloning (zero-shot).** |
 | `tts-orpheus` | `tara` | wav | private | `temperature`. |
 | `tts-elevenlabs-turbo-v2-5` | `Rachel` | mp3 | anonymized | Accepts raw ElevenLabs Voice IDs as `voice`. |
@@ -128,7 +128,7 @@ curl https://api.venice.ai/api/v1/audio/voices \
 
 `tts-minimax-speech-02-hd` also appears in the `model` enum in the OpenAPI spec, but cloning with it isn't open to regular keys, which get `403 "Voice cloning … is not available on your account"`. Its model spec on `/models` carries no `voice_cloning` object — use that as the signal.
 
-A handle is bound to the model that created it. Pass it with a model that has no cloning support → `400`; pair it with the wrong cloning model and the upstream rejects it.
+A handle is bound to the model that created it. Pass it with a model that has no cloning support → `400`; pairing it with a different cloning model fails.
 
 ## Streaming
 
@@ -202,8 +202,8 @@ See [`venice-errors`](../venice-errors/SKILL.md) for body shapes and retry strat
 - Always send `model` — the documented default never applies.
 - `input` hard cap is 4096 chars. For long content, split on sentence boundaries and concatenate audio client-side.
 - Don't assume `mp3`: Inworld, Chatterbox, Orpheus and Gradium default to `wav`, and most models reject formats outside their `supported_formats`. Omit `response_format` or check `/models` first.
-- `speed` is only honored by Kokoro (full range), xAI, ElevenLabs Turbo and MiniMax (clamped). Keep `0.8–1.3` for natural narration.
-- `streaming: true` + SDKs: some OpenAI SDK versions don't expose streaming for `audio.speech.create`; call the REST endpoint directly and consume the body.
+- `speed` is only applied by Kokoro (unclamped), xAI, ElevenLabs Turbo and MiniMax (clamped). Keep `0.8–1.3` for natural narration.
+- `streaming` is a Venice-specific field that isn't in the OpenAI SDK's types; pass it as an extra body field, or call the REST endpoint directly and consume the body.
 - Voice names are case-sensitive (`eve` ≠ `Eve`, `af_sky` ≠ `AF_SKY`). Note `leo` (xAI/Orpheus) vs `Leo` (Gradium, French).
 - Chatterbox cloned handles expire 7 days after creation. Re-clone rather than storing handles long-term.
 - Gradium has no `language` parameter — pick the voice for the language you want.

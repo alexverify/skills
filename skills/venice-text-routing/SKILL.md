@@ -15,7 +15,9 @@ Primary use case: a **local agent** receives a prompt, decides whether the local
 
 `refresh_routing.py` rewrites both [`snapshots/text-routing.json`](snapshots/text-routing.json) and [`routing-matrix.md`](routing-matrix.md). Both endpoints are public, so no key is needed; `VENICE_API_KEY` / `--api-key` is optional and tailors the result to that key (a `modelPrivacy`-restricted key sees a filtered catalog). Run it once on first install, then ~monthly (CI nightly is also fine).
 
-In the snapshot, each model's `privacy` label is `e2ee` when `supportsE2EE` is true, `tee` when only `supportsTeeAttestation` is true, and otherwise the model's own `private` / `anonymized` value; `tier` is bucketed by **input** price only; `beta` is true if either `beta` or `betaModel` is set.
+In the snapshot, each model's `privacy` label is `e2ee` when `supportsE2EE` is true, `tee` when only `supportsTeeAttestation` is true, and otherwise the model's own `private` / `anonymized` value (every TEE/E2EE model is `private` in `/models`, so treat `tee` and `e2ee` as private too); `tier` is bucketed by **input** price only; `beta` is true if either `beta` or `betaModel` is set, so it cannot tell a beta-access-only model from a beta-status one.
+
+Per model the snapshot carries only: the 13 capability flags shown in the matrix, `max_images`, `available_context_tokens`, `max_completion_tokens`, input/output price per 1M, `beta`, `offline`, `region_restrictions` and `deprecation_date`. Filters that need anything else (`uncensored`, `supportsLogProbs`, `reasoningEffortOptions`, `maxVideos`, `cache_input` / `extended` pricing, `replacementModelId`) have to read `GET /models?type=text`.
 
 ## When to load this skill
 
@@ -34,16 +36,16 @@ Pick the *least restrictive* tier that satisfies the request — restricting tie
 
 | Tier | Selector (`GET /models`) | Guarantee | Use when |
 |---|---|---|---|
-| **Anonymized** | `privacy: "anonymized"` | Venice proxies the request without your Venice identity, but the provider (e.g. Anthropic, OpenAI, Google) sees the prompt and applies its own policy | Non-sensitive workloads; the only path to several closed frontier models (Claude, GPT, Gemini). |
+| **Anonymized** | `privacy: "anonymized"` | Venice hides your identity from the upstream provider, but the provider may still see the prompt | Non-sensitive workloads; the only path to several closed frontier models (Claude, GPT, Gemini). |
 | **Private** | `privacy: "private"` | Zero data retention, contract-enforced: content is processed for inference only and not retained | Default for user data, business logic, anything you wouldn't paste into a public chatbot. |
 | **TEE** | `capabilities.supportsTeeAttestation: true` | Runs inside a hardware Trusted Execution Environment with remote attestation (`GET /api/v1/tee/attestation`) | Regulated data, verifiable/signed inference. |
 | **E2EE** | `capabilities.supportsE2EE: true` | TEE + client-side encryption (ECDH secp256k1 → HKDF-SHA256 → AES-256-GCM); Venice relays ciphertext only | Strongest. Healthcare, legal, secrets. Requires the E2EE flow in [`venice-chat`](../venice-chat/SKILL.md#e2ee-end-to-end-encryption). |
 
 Today every listed TEE model is also E2EE-capable and uses an `e2ee-*` ID (e.g. `e2ee-glm-5-3-p`, `e2ee-kimi-k3-p`, `e2ee-qwen3-8-27b`). **TEE and E2EE use the same model ID**: send E2EE headers for E2EE, omit them (or set `venice_parameters.enable_e2ee: false`) for TEE-only. Legacy `tee-*` IDs are unlisted aliases of `e2ee-*` models — don't route on the prefix; use the capability flags.
 
-E2EE trade-offs: streaming only, no web search, scraping, characters, file inputs, or Venice system prompt, and the E2EE guide lists function calling as unsupported. Several E2EE models also have small limits (e.g. `e2ee-qwen-2-5-7b-p`: 32K context, 4,096 output tokens). E2EE is **not** supported on `/responses`; TEE-only is (with `enable_e2ee: false`).
+E2EE trade-offs: on E2EE requests Venice injects no web search, scraping, character, or Venice system prompt, and `file` parts return `400`; the E2EE guide also requires `stream: true` and lists function calling as unsupported (`supportsFunctionCalling` describes the model, not E2EE mode). Several E2EE models also have small limits (e.g. `e2ee-qwen-2-5-7b-p`: 32K context, 4,096 output tokens). E2EE is **not** supported on `/responses`; TEE-only is (with `enable_e2ee: false`).
 
-API keys can carry a `modelPrivacy` restriction: `PRIVATE_TEXT` (text/embedding models must be Private, TEE, or E2EE) or `PRIVATE_ONLY` (every model). A disallowed model returns `403` — filter to `privacy: "private"` for such keys.
+API keys can carry a `modelPrivacy` restriction: `PRIVATE_TEXT` (text, embedding and decision models must be Private, TEE, or E2EE) or `PRIVATE_ONLY` (every model). Such a key's `/models` list is already filtered; a disallowed model returns `403` — filter to `privacy: "private"` for such keys.
 
 Sources: [docs.venice.ai/overview/privacy](https://docs.venice.ai/overview/privacy), [docs.venice.ai/guides/features/tee-e2ee-models](https://docs.venice.ai/guides/features/tee-e2ee-models).
 
@@ -52,10 +54,9 @@ Sources: [docs.venice.ai/overview/privacy](https://docs.venice.ai/overview/priva
 Two endpoints let you check that inference really ran inside an enclave. Both
 are `GET`, **unauthenticated on purpose** (attestation evidence has to be
 verifiable by any party without credentials), and rate limited to **10 requests
-per minute per IP**. Neither appears in `swagger.yaml` as a path, so
-`sync_from_swagger.py` flags `/tee/attestation` as stale. That is expected: the
-endpoints are live and the `supportsTeeAttestation` capability description in
-`GET /models` points at them.
+per minute per IP** (`429` beyond that). Neither is a path in the published
+OpenAPI spec; they are live, and the `supportsTeeAttestation` capability
+description in `GET /models` points at them.
 
 | Endpoint | Query | Returns |
 |---|---|---|
@@ -63,8 +64,9 @@ endpoints are live and the `supportsTeeAttestation` capability description in
 | `GET /api/v1/tee/signature` | `model` and `request_id` (required), `signing_algo` (optional `ecdsa` \| `ecdsa-p256` \| `rsa`) | The provider's signature over a specific request, plus request/response hashes. |
 
 Both return `400` if the model exists but is not TEE-attested, and `404` if the
-model ID is unknown. The attestation endpoint returns `502` when verification
-fails. Chat responses from TEE models carry `X-Venice-TEE: true` and
+model ID is unknown. The attestation endpoint returns `502` (with
+`verified: false`) when verification fails; both return `502` when the TEE
+provider is unavailable. Chat responses from TEE models carry `X-Venice-TEE: true` and
 `X-Venice-TEE-Provider`.
 
 Verify the chain of trust in this order: fetch the attestation to get the
@@ -76,15 +78,15 @@ documented canonical format.
 
 ## Capability filters
 
-Map prompt requirement → `model_spec` field (full list in the `model_spec.capabilities` section of [`venice-models`](../venice-models/SKILL.md)). Sending a feature the model lacks returns `400` before inference.
+Map prompt requirement → `model_spec` field (full list in the `model_spec.capabilities` section of [`venice-models`](../venice-models/SKILL.md)). Sending image / audio / video parts, `tools` / `tool_choice`, a non-`text` `response_format`, or `logprobs` to a model without the matching flag returns `400` before inference; some other features (e.g. `enable_x_search`) are silently ignored instead.
 
 | Requirement | Filter | Notes |
 |---|---|---|
 | Vision (single image) | `capabilities.supportsVision` | Single-image models keep images only from the **last** image-bearing message. |
 | Vision (multiple images) | `supportsVision && supportsMultipleImages` | Honor `capabilities.maxImages`. Hard cap: 10 images per message. |
 | Audio input | `capabilities.supportsAudioInput` | Base64 only; URLs are not accepted. |
-| Video input | `capabilities.supportsVideoInput` | YouTube links, `data:video/...` URLs, or direct public URLs (no redirects). Max 3 videos per request. |
-| Documents (PDF, DOCX, …) | — | `file` parts are extracted to text server-side, so any text model works (not on E2EE). |
+| Video input | `capabilities.supportsVideoInput` | `data:video/...` URLs, direct public URLs (no redirects), or YouTube links on some models. Max 3 videos per request. |
+| Documents (PDF, DOCX, …) | — | Document `file` parts are extracted to text server-side, so any text model works (not on E2EE). Image files sent as `file` parts become images and need vision. |
 | Reasoning | `capabilities.supportsReasoning` | To dial effort, also require `supportsReasoningEffort` and pick a value from `reasoningEffortOptions` (default: `defaultReasoningEffort`). |
 | Tools / function calling | `capabilities.supportsFunctionCalling` | Required for any agent loop. |
 | Code-heavy task | `capabilities.optimizedForCode` | `GET /models?type=code` returns only this subset. |
@@ -108,7 +110,7 @@ These buckets are this skill's own convention (the same boundaries `refresh_rout
 | **L** | $4 – $10 | Long context, heavy reasoning, complex tool use. |
 | **Frontier** | ≥ $10 | Most expensive closed models (e.g. `claude-fable-5`, `openai-gpt-6-astra`, `openai-gpt-54-pro` as of 2026-09-30). |
 
-Output prices vary widely within a bucket (from ~1.5× to ~10× input), so tie-break on output price. Authoritative per-model pricing lives in `model_spec.pricing` (mirrored as `pricing_per_1m` in the snapshot) — never hard-code dollar figures from this prose.
+Output prices vary widely within a bucket (from ~1.5× to ~10× input), so tie-break on output price. Authoritative per-model pricing lives in `model_spec.pricing` (input and output rates are mirrored as `pricing_per_1m` in the snapshot) — never hard-code dollar figures from this prose.
 
 ## Routing decision tree
 
@@ -123,7 +125,8 @@ Walk top-down. Stop at the first rule that applies.
 2. Privacy gate
    - User flagged "private" OR prompt contains regulated data (PHI, secrets, legal),
      OR the API key has modelPrivacy PRIVATE_TEXT / PRIVATE_ONLY:
-       require model_spec.privacy === "private"   (includes every TEE/E2EE model).
+       require model_spec.privacy === "private"   (includes every TEE/E2EE model;
+       in the snapshot accept privacy "private", "tee" or "e2ee").
    - User flagged "E2EE" / "must be encrypted end to end":
        require capabilities.supportsE2EE. Use /chat/completions only.
    - User flagged "TEE" / "verifiable inference":
@@ -159,9 +162,11 @@ Walk top-down. Stop at the first rule that applies.
 
 8. Sanity filters (apply throughout)
    - Drop model_spec.beta === true unless your key has beta access
-     (betaModel === true marks beta-status models that may change or disappear).
+     (such models are only listed to beta-access keys anyway).
+     betaModel === true marks beta-status models that may change or disappear;
+     the snapshot's beta flag merges both, so check /models before dropping.
    - Drop model_spec.offline === true.
-   - Drop candidates whose model_spec.regionRestrictions exclude the caller (403 otherwise).
+   - Drop candidates whose model_spec.regionRestrictions lists the caller's country (403 otherwise).
    - Prefer models without model_spec.deprecation.
 ```
 
@@ -210,7 +215,7 @@ For a local agent driving Venice as an "escalation backend":
      }'
    ```
 
-5. **Cap blast radius**: log the chosen model + estimated cost before sending; refuse to escalate beyond the user's `--max-cost` ceiling. The response's `cost` field reports what was actually charged.
+5. **Cap blast radius**: log the chosen model + estimated cost before sending; refuse to escalate beyond the user's `--max-cost` ceiling. When present, the response's `cost` field reports what was actually charged.
 
 ## Examples
 
@@ -243,6 +248,7 @@ Prompt: "Give me your absolute best take on this 400-page contract bundle." (~20
 - Step 5 → context gate drops models with `availableContextTokens` below ~200K.
 - Step 6 → frontier override fires (`most_intelligent`); confirm the resolved model still passes step 5.
 - → `traits.most_intelligent` (whatever the snapshot says; `grok-4-7` with 500K context as of 2026-09-30).
+- Estimate cost with `pricing.extended`: as of 2026-09-30 `grok-4-7` roughly doubles its rates once input exceeds 200,000 tokens, which a ~200K prompt can cross.
 
 **Example 5 — code agent with tools**
 
@@ -260,12 +266,12 @@ Sibling routing skills (`venice-image-routing`, `venice-audio-routing`, `venice-
 ## Gotchas
 
 - **Don't hard-code model IDs.** Venice adds and retires models frequently — resolve via traits or filters against the snapshot.
-- **Stale snapshot lies silently.** The 30-day rule is the floor; refresh sooner if you hit a `404` on a model ID.
+- **Stale snapshot lies silently.** 30 days is the maximum age; refresh sooner if you hit a `404` on a model ID.
 - **Don't route on ID prefixes.** Use `privacy`, `supportsTeeAttestation`, and `supportsE2EE`; `tee-*` IDs are unlisted legacy aliases.
 - **Privacy ≠ uncensored.** `most_uncensored` / `model_spec.uncensored` and `privacy: "private"` are independent axes.
 - **`most_intelligent` is not the most expensive.** It is a curated pick and can sit in a mid cost tier.
 - **`enable_e2ee` defaults to `true`** on E2EE-capable models when E2EE headers are present — see [`venice-chat`](../venice-chat/SKILL.md). The routing decision selects the model; the chat skill drives the handshake.
-- **Region restrictions.** `model_spec.regionRestrictions[]` (only present on restricted models) → `403` outside the listed countries.
+- **Region restrictions.** `model_spec.regionRestrictions[]` (only present on restricted models) lists blocked countries → `403` for requests from those countries.
 - **Trait keys differ by `type`.** Always pass `?type=text`. Don't reuse image traits.
 
 ## See also

@@ -27,7 +27,7 @@ A request with no `Authorization` header gets a `402` x402 auth challenge rather
 
 | Type | Can call |
 |---|---|
-| `INFERENCE` | Inference and utility routes — `/chat/completions`, `/responses`, `/image/*`, `/images/generations`, `/audio/*`, `/video/*`, `/embeddings`, `/augment/*`, `/crypto/rpc/*`, `/characters*`, `/models*` — plus `GET /api_keys/rate_limits`. Admin-only routes return `401` `"Admin API key required"`. |
+| `INFERENCE` | Inference and utility routes — `/chat/completions`, `/responses`, `/decisions`, `/systemone`, `/image/*`, `/images/generations`, `/audio/*`, `/video/*`, `/embeddings`, `/augment/*`, `/crypto/rpc/*`, `/characters*`, `/models*` — plus `GET /api_keys/rate_limits`. Admin-only routes return `401` `"Admin API key required"`. |
 | `ADMIN` | Everything above, plus `GET/POST/PATCH/DELETE /api_keys`, `GET /api_keys/{id}`, `GET /api_keys/rate_limits/log`, and all billing routes (`/billing/balance`, `/billing/usage-history`, `/billing/usage-analytics`). |
 
 Secrets are prefixed `VENICE_INFERENCE_KEY_` or `VENICE_ADMIN_KEY_`. A leaf app should almost always use **`INFERENCE`** keys — per-app, per-user, with consumption caps.
@@ -218,8 +218,8 @@ Requires an **ADMIN** key. Returns the account's last 50 rate-limit breaches, ne
 | Value | Meaning |
 |---|---|
 | `RPM` / `TPM` / `RPD` | Per-model throughput caps. |
-| `FAILED_REQUESTS` | Too many requests returned a non-success status within the error window. |
-| `UNSUPPORTED_FEATURE_REQUESTS` | Too many requests asked a model for a feature it doesn't support. |
+| `FAILED_REQUESTS` | The generic error budget: more than 50 client-error responses (4xx other than `429`) within 30 seconds. |
+| `UNSUPPORTED_FEATURE_REQUESTS` | More than 200 "model doesn't support this feature" rejections within 30 seconds on `/chat/completions` or `/responses`. |
 
 `modelId` is usually a model id, but endpoint-level limits log `endpoint:api/v1/...` (e.g. `endpoint:api/v1/crypto/rpc`) and unresolvable model names log `model:unknown`.
 
@@ -262,8 +262,8 @@ console.log(data.apiKey) // save this once
 ```
 
 - Body: `address`, `signature`, `token`, and `apiKeyType` are required; `description` defaults to `"Web3 API Key"`; `expiresAt`, `consumptionLimit`, `limitPeriod`, `modelPrivacy` work as in `POST /api_keys`.
-- The signature is verified on Base (chain 8453). All failures are `400` with a specific message: bad address, expired/modified token, signature mismatch, or `"Wallet … has no staked VVV on Base"`.
-- The response has the same shape as `POST /api_keys`. The returned `apiKey` behaves exactly like a normal Bearer key.
+- The signature is verified on Base (chain 8453). Verification failures are `400` with a specific message: bad address, expired/modified token, signature mismatch, or `"Wallet … has no staked VVV on Base"`.
+- The response has the same shape as `POST /api_keys`. The returned `apiKey` behaves exactly like a normal Bearer key. Staked VVV only gates minting: the key still spends DIEM, bundled credits, or USD from the linked account.
 
 ## Recipes
 

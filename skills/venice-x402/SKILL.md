@@ -119,18 +119,18 @@ console.log(data.newBalance, data.amountCredited, data.paymentId)
     "walletAddress": "0x...",
     "amountCredited": 10,
     "newBalance": 22.5,
-    "paymentId": "payment_01HZ..."
+    "paymentId": "x402-5b1f…"
   }
 }
 ```
 
 The settlement result is also returned base64-encoded in the `PAYMENT-RESPONSE` header: `{ success, network (CAIP-2), payer, transaction }`.
 
-A signed payment is credited at most once (keyed by its payment id). If settlement times out (`504 SETTLEMENT_TIMEOUT`), the payment is finished automatically in the background — check the balance before signing a new one.
+`paymentId` is an opaque id derived from the signed payment. A signed payment is credited at most once, however many times it is submitted; while it is still settling, a resubmission gets `409 PAYMENT_IN_PROGRESS`. If settlement times out (`504 SETTLEMENT_TIMEOUT`), the transfer may still land on-chain — check the balance before signing a **new** payment.
 
 ### 3. Call inference with `SIGN-IN-WITH-X`
 
-Send a fresh SIWX proof for the wallet on each request. Venice debits the wallet's credit balance after the request is served.
+Send a fresh SIWX proof for the wallet on each request. Venice debits the wallet's credit balance for each request — after it is served for most endpoints; queued video / audio jobs are charged up front and refunded if they fail.
 
 - A wallet needs at least **$0.10** of credit to be admitted.
 - An EVM wallet that is linked to a Venice account with staked DIEM spends that **DIEM first**; the USDC credit balance is used only when no DIEM is available.
@@ -175,7 +175,7 @@ Its `PAYMENT-REQUIRED` header carries the x402 v2 object `{ x402Version, error, 
 
 `topUpInstructions` describes the **Base** rail only and still names the legacy `X-402-Payment` header. To pay on Solana, use `accepts[]` from `POST /x402/top-up`. `siwxChallenge.supportedChains` is the authoritative list of chains and signature types you can sign in with (the challenge expires after 5 minutes).
 
-A request with **no** credentials at all gets a different `402`: the x402 v2 object itself plus `authOptions` (`apiKey` and `x402Wallet` hints) — no balance fields.
+A request with **no** credentials at all gets a different `402`: the x402 v2 object itself plus `authOptions` (`apiKey` and `x402Wallet` hints) — no balance fields. On inference routes its `accepts[]` is priced at $10 per rail; on `/x402/balance` and `/x402/transactions` it is empty (only the SIWX challenge matters there). In these challenge `accepts[]` (both the no-credentials and the insufficient-balance `PAYMENT-REQUIRED`), Solana's `network` is currently the bare `solana`, not the CAIP-2 id.
 
 ## `GET /x402/balance/{walletAddress}`
 
@@ -281,12 +281,12 @@ Top-up errors are JSON `{ "error": "<CODE>", "message": "...", ... }`.
 | `409` | `PAYMENT_IN_PROGRESS` — the same payment is settling; retry shortly. |
 | `429` | x402 route rate limits, or `X402_CONCURRENCY_LIMIT` (more than 5 in-flight requests for the wallet). |
 | `503` | `X402_NOT_CONFIGURED` — payments temporarily unavailable. |
-| `504` | `SETTLEMENT_TIMEOUT` — the payment will be credited automatically; check the balance before retrying. |
+| `504` | `SETTLEMENT_TIMEOUT` — the transfer may still settle; check the balance before signing a new payment. |
 
 ## Gotchas
 
 - Use the `x402` package (or `venice-x402-client`) for signing. Hand-rolled EIP-712 authorizations with reused nonces fail verification.
-- The discovery `accepts[]` always uses CAIP-2 networks (`solana:5eykt…`, not `solana`). Match on both forms if you filter.
+- The `POST /x402/top-up` discovery `accepts[]` uses CAIP-2 networks (`solana:5eykt…`), but the `402` challenges on other routes list Solana as `solana`. Match on both forms if you filter.
 - The SIWX signer wallet must match the `walletAddress` path param on `balance` / `transactions`. Separate wallets can't inspect each other.
 - `/x402/top-up` needs no auth on the discovery call — the signed payment itself authorizes settlement.
 - Don't read the rail off `topUpInstructions`; it still describes Base only. `accepts[]` is the multi-rail list.

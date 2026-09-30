@@ -26,7 +26,7 @@ Always `multipart/form-data`:
 | `file` | Required. Max **25 MB** (larger → `413`). |
 | `response_format` | `json` (default) or `text`. |
 
-Accepted file types (matched by MIME type, or by filename extension when the MIME is missing/generic such as `application/octet-stream`):
+Accepted file types (matched by MIME type, or by filename extension when the MIME type isn't recognized, e.g. `application/octet-stream`):
 
 - **Structured documents:** PDF, EPUB, DOCX, PPTX, XLSX, XLS. Legacy `.doc` and `.ppt` are **not** accepted.
 - **Text / data:** any `text/*` MIME, plus Markdown, CSV/TSV, JSON/JSONL, YAML, TOML, XML, HTML, RTF, LaTeX, logs, etc.
@@ -91,7 +91,7 @@ curl -X POST https://api.venice.ai/api/v1/augment/scrape \
 
 ### How it fetches
 
-Sites that serve markdown directly are returned as-is; otherwise the page is rendered in a headless browser and converted to markdown. Redirects are followed (up to 5), and each hop is re-checked against the blocked-URL rules.
+Sites that serve markdown directly are returned as-is; otherwise the page is fetched and converted to markdown. Redirects are followed, but a redirect to a private/internal target fails the request (see below). The X/Reddit blocklist is checked against the URL you send, not against redirect targets.
 
 ### Tips
 
@@ -99,7 +99,7 @@ Sites that serve markdown directly are returned as-is; otherwise the page is ren
 - **Blocked URLs** — non-HTTP(S) schemes, URLs with embedded credentials, `localhost` / private / reserved IPs and cloud-metadata hosts return `400`. A public hostname that resolves or redirects to such a target fails with `500`.
 - Unreachable hosts, timeouts and pages with no extractable content return `500` with a message (e.g. `"URL unreachable: …"`). You are not charged.
 - Some sites return a partial body. Check `content` length before piping it into a model.
-- Rate limit: **20 requests/minute per user** (`429` beyond that).
+- Rate limit: **20 requests/minute per user** (`429` beyond that). The counter runs before URL validation, so rejected URLs also count.
 
 ## `POST /augment/search` — web search
 
@@ -154,16 +154,16 @@ curl -X POST https://api.venice.ai/api/v1/augment/search \
 
 - For cited answers inside a chat completion, use `/chat/completions` with `venice_parameters.enable_web_search` + `enable_web_citations` instead. See [`venice-chat`](../venice-chat/SKILL.md).
 - For "search + read" pipelines, feed `results[*].url` into `/augment/scrape` — mind the 20/min scrape limit.
-- Rate limit: **20 requests/minute per user** (`429` beyond that).
+- Rate limit: **20 requests/minute per user** (`429` beyond that). Requests that fail body validation still count.
 
 ## Errors
 
 | Status | Cause |
 |---|---|
-| `400` | Missing file, unsupported file type, no extractable text, password-protected/invalid PDF; invalid/blocked URL (X, Reddit, private/internal); empty or > 400-char query; `limit` out of range. Body: `{ error, details? }`. |
+| `400` | Missing file, unsupported file type, no extractable text, password-protected/invalid PDF; invalid/blocked URL (X, Reddit, private/internal); empty or > 400-char query; `limit` out of range; non-JSON `Content-Type` on scrape/search (`"'Content-Type' must be 'application/json'"`). Body: `{ error, details? }`. |
 | `401` | Invalid API key or SIWX signature. |
-| `402` | Insufficient balance. Bearer → `INSUFFICIENT_BALANCE`; x402 → payment-required body + `PAYMENT-REQUIRED` header. Requests with no credentials at all also get `402` (x402 discovery challenge). |
-| `403` | Unauthorized access. |
+| `402` | Insufficient balance or the key's USD/DIEM spend limit reached. Bearer → `INSUFFICIENT_BALANCE`; x402 → payment-required body + `PAYMENT-REQUIRED` header. Requests with no credentials at all also get `402` (x402 discovery challenge). |
+| `403` | API access disabled for the account (`"API access has been disabled for this account…"`). |
 | `413` | Text-parser file over 25 MB (`PAYLOAD_TOO_LARGE`). |
 | `429` | Per-endpoint rate limit (scrape/search: 20/min) or the failed-request limiter. Back off with jitter. |
 | `500` | Scrape fetch failure, search provider failure (`"Search provider failed to return results…"`), or parse failure (`"Failed to parse document"`). Not charged; safe to retry. |

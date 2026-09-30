@@ -87,16 +87,16 @@ The body is permissive: other fields (`instructions`, `metadata`, `parallel_tool
 | Reasoning | `{type:"reasoning", ...}` | Accepted but **discarded** — reasoning is not carried between turns. |
 | Item reference | `{type:"item_reference", id}` | Accepted but discarded (nothing is stored to reference). |
 
-Content parts: `input_text`, `output_text` (to replay assistant output), and `input_image`. `input_image.image_url` may be a URL **string** (OpenAI Responses style) or `{url, detail}`; `detail` (`auto` / `low` / `high`) may also sit on the part. Messages without `type` additionally accept Chat-style `text` and `image_url` parts. Image URLs get the same validation as on `/chat/completions` (public, no redirects, ≥ 64 px); failures → `400`. Images need a vision model.
+Content parts: `input_text`, `output_text` (to replay assistant output), and `input_image`. `input_image.image_url` may be a URL **string** (OpenAI Responses style) or `{url, detail}`; `detail` (`auto` / `low` / `high`) may also sit on the part. Messages without `type` additionally accept Chat-style `text` and `image_url` parts. Image URLs get the same validation as on `/chat/completions` (public, no redirects, ≥ 64 px); failures → `400`. Use a vision model: message images are not capability-checked on this endpoint (images inside a `function_call_output` on a non-vision model do return `400`).
 
 ### Tools
 
 | Tool | Effect |
 |---|---|
-| `{"type":"function","function":{name, description, parameters, strict}}` | Function calling. The flat OpenAI form `{"type":"function","name":...,"parameters":...}` is also accepted. Requires `supportsFunctionCalling`. |
+| `{"type":"function","function":{name, description, parameters, strict}}` | Function calling. The flat OpenAI form `{"type":"function","name":...,"parameters":...}` is also accepted. Use a model with `supportsFunctionCalling` (not pre-checked on this endpoint, unlike chat). |
 | `{"type":"web_search"}` | Forces Venice web search **on** (not `auto`). `search_context_size` / `user_location` are accepted but ignored. |
 | `{"type":"x_search", ...}` | xAI native web + X search on models with `supportsXSearch` (Grok); ignored on other models. Optional filters: `allowed_x_handles` / `excluded_x_handles` (≤ 10 each), `from_date`, `to_date`, `enable_image_understanding`, `enable_video_understanding`. |
-| `code_interpreter`, `file_search`, `computer_use_preview`, others | Accepted and dropped. |
+| `code_interpreter`, `file_search`, `computer_use_preview`, others | Accepted and dropped. Unknown tool types that carry a `name` are treated as function tools. |
 
 ## Response shape
 
@@ -141,11 +141,11 @@ Content parts: `input_text`, `output_text` (to replay assistant output), and `in
 | `function_call` | Tool call: `name`, JSON-string `arguments`, `call_id`. Answer with a `function_call_output` item with the same `call_id`. |
 | `web_search_call` | Marker that Venice web search ran. |
 
-`url_citation` annotations are built only when the text contains `^n^` markers — set `venice_parameters.enable_web_citations: true` to get them. Each annotation spans the marker itself.
+`url_citation` annotations are built only when the text contains single-index `^n^` markers — set `venice_parameters.enable_web_citations: true` to get them. Each annotation spans the marker itself; multi-index markers such as `^1,3^` are not annotated.
 
 ## Streaming
 
-With `stream: true`, events are `event: <type>` + `data: {...}` pairs; every payload carries `type` and an increasing `sequence_number`. Typical flow:
+With `stream: true`, events are `event: <type>` + `data: {...}` pairs; payloads carry `type` (equal to the event name) and an increasing `sequence_number` — except `response.web_search.done`, whose payload has `type: "web_search_call"`, `id`, `status`, `results` and no `sequence_number`. Typical flow:
 
 ```
 event: response.created                      # status: in_progress
@@ -171,8 +171,8 @@ data: [DONE]
 | Status | When |
 |---|---|
 | `400` | Invalid body, E2EE-capable model without `enable_e2ee: false`, invalid image, unsupported `reasoning.effort` for the model, context too long, `max_output_tokens` over the cap |
-| `401` | Missing / invalid auth |
-| `402` | Insufficient balance. x402: `PAYMENT_REQUIRED` body with `topUpInstructions` + `siwxChallenge` and a `PAYMENT-REQUIRED` header (see [`venice-x402`](../venice-x402/SKILL.md)) |
+| `401` | Invalid API key or SIWX sign-in; also a model that requires a paid subscription |
+| `402` | No credentials at all (x402 discovery body — not `401`), insufficient balance, or API-key spend limit. x402: `PAYMENT_REQUIRED` body with `topUpInstructions` + `siwxChallenge` and a `PAYMENT-REQUIRED` header (see [`venice-x402`](../venice-x402/SKILL.md)) |
 | `403` | Model blocked by the key's `modelPrivacy`, region, or provider restriction |
 | `404` | Unknown model |
 | `422` | Content-policy violation on an input image |
@@ -193,7 +193,7 @@ The spec lists an `X-Balance-Remaining` header on x402 `200` responses, but the 
 
 ## Gotchas
 
-- Unknown `character_slug` is **not** rejected here (chat returns `404`). The request runs without the character and without your `system` messages. Validate slugs with [`venice-characters`](../venice-characters/SKILL.md) first.
+- Unknown `character_slug` is **not** rejected here (chat returns `404`). The request runs without the character, without your `system` messages, and without the Venice system prompt or web search. Validate slugs with [`venice-characters`](../venice-characters/SKILL.md) first.
 - Reasoning items in `input` are discarded; there is no cross-turn reasoning carry-over on this endpoint.
 - `tool_choice` objects must be `{"type":"function","function":{"name":...}}`; the flat `{"type":"function","name":...}` form fails validation.
 - Stateless: `previous_response_id` is silently ignored, so omitting history silently loses context.

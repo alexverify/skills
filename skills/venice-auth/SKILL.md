@@ -19,12 +19,12 @@ Venice declares two auth schemes in its OpenAPI spec: `BearerAuth` (API key) and
 | Endpoints | Bearer key | SIWX wallet |
 |---|---|---|
 | Inference: `/chat/completions`, `/responses`, `/embeddings`, `/decisions` (+ `/systemone`), `/image/*` (generate, edit, multi-edit, upscale, background-remove), `/images/generations`, `/audio/speech`, `/audio/transcriptions`, `/audio/voices`, `/audio/{queue,retrieve,complete}`, `/audio/voice-changer/{queue,retrieve,complete}`, `/video/{queue,retrieve,complete}`, `/augment/*`, `POST /crypto/rpc/{network}` | yes | yes |
-| `/api_keys*` (except `generate_web3_key`), `/billing/*`, `/characters*` | yes | no |
+| `/api_keys*` (except `generate_web3_key`), `/billing/*` (except the retired `/billing/usage`, which answers `410` without auth), `/characters*` | yes | no - a SIWX header alone gets `401 Authentication failed` |
 | `GET /x402/balance/{wallet}`, `GET /x402/transactions/{wallet}` | no | yes - signer must be `{wallet}` (else `403`) |
 | `POST /x402/top-up` | - | payment header (see below) |
 | `/models*`, `/image/styles`, `/video/quote`, `/audio/quote`, `/audio/voice-changer/quote`, `/crypto/rpc/networks`, `/tee/*`, `/api_keys/generate_web3_key` | not required | not required |
 
-If a request carries a `SIGN-IN-WITH-X` header, Venice uses wallet auth even when `Authorization` is also present. A request with **neither** header on a Bearer-or-SIWX route gets `402` with an x402 discovery body (payment options, SIWX challenge, `authOptions`), not `401`.
+On routes that accept a wallet, a `SIGN-IN-WITH-X` header wins: Venice uses wallet auth even when `Authorization` is also present. On Bearer-only routes the SIWX header is ignored. A request with **neither** header on any route that needs credentials (Bearer-only routes included) gets `402` with an x402 discovery body (payment options, SIWX challenge, `authOptions`), not `401`.
 
 ## Option A - Bearer API key
 
@@ -34,7 +34,7 @@ Authorization: Bearer <VENICE_API_KEY>
 
 - Create keys at <https://venice.ai/settings/api> or via [`venice-api-keys`](../venice-api-keys/SKILL.md).
 - Keys carry `apiKeyType` (`ADMIN` or `INFERENCE`), optional `consumptionLimits` (`usd` / `diem` caps over a `limitPeriod`), and `modelPrivacy` (`ALL`, `PRIVATE_TEXT`, `PRIVATE_ONLY`) which restricts which models the key may call.
-- Only `ADMIN` keys can list, create, update or delete keys or read the rate-limit log.
+- Only `ADMIN` keys can list, get, create, update or delete keys, read the rate-limit log, or call `/billing/balance`, `/billing/usage-history` and `/billing/usage-analytics`; an `INFERENCE` key gets `401 "Admin API key required"`.
 - Billing draws from DIEM (staked) first, then bundled credits, then USD balance.
 
 ```bash
@@ -88,10 +88,10 @@ Instead of `message` you may send the structured SIWX fields (`domain`, `address
 | Field | Rule |
 |---|---|
 | `domain` | Use `api.venice.ai` (`venice.ai` is also accepted). Protocol, port and path are stripped before comparing, and the value is checked against Venice's allowed domains, not the request `Host`. |
-| `address` | The signer. SIWE itself requires the EIP-55 checksummed form in the message. |
+| `address` | The signer. Venice compares it case-insensitively; the `siwe` library expects the EIP-55 checksummed form. |
 | `uri` | Required by SIWE; not validated by Venice. `https://api.venice.ai` is conventional. |
 | `version` | `"1"` |
-| `chainId` | `8453` only (anything else → `X402_SIGN_IN_UNSUPPORTED_CHAIN`). |
+| `chainId` | `8453` only (anything else → `X402_SIGN_IN_UNSUPPORTED_CHAIN`). A message with no `Chain ID` line is read as chain `1` and rejected the same way. |
 | `nonce` | Required, single-use per wallet. The `siwe` library needs ≥ 8 alphanumeric chars; 16 hex chars is a safe choice. |
 | `issuedAt` | Required. Must be at most **5 minutes** old and at most **30 s** in the future. |
 | `expirationTime` | Optional, but **enforced**: past it → `X402_SIGN_IN_EXPIRED`. |
@@ -100,7 +100,7 @@ Instead of `message` you may send the structured SIWX fields (`domain`, `address
 
 EOA signatures (EIP-191) and smart-contract wallet signatures (EIP-1271) are both accepted on Base.
 
-**Effective lifetime** = the earlier of `issuedAt + 5 min` and `expirationTime`. Generate a fresh header per request, or at least every ~4 minutes. Nonces are remembered per wallet for 5.5 minutes, so reusing one within that window fails with `X402_SIGN_IN_NONCE_REUSED` - which also means a signed header can't be replayed, even within its lifetime.
+**Effective lifetime** = the earlier of `issuedAt + 5 min` and `expirationTime`, but each header is good for **one request**: the nonce is consumed as soon as the signature verifies (even if the request then fails, e.g. with `402`), and nonces are remembered per wallet for 5.5 minutes - longer than any header can live - so re-sending a header fails with `X402_SIGN_IN_NONCE_REUSED`. Sign a new header for every request, including retries.
 
 ### Solana message fields
 
@@ -174,7 +174,7 @@ const venice = new VeniceClient(process.env.WALLET_KEY!, {
   autoTopUp: { enabled: true, amount: 10 }, // optional: top up automatically on 402
 })
 
-await venice.topUp(10)            // $10 USDC on Base (first time only)
+await venice.topUp(10)            // pay $10 USDC on Base into the wallet's credit balance
 const res = await venice.chat({
   model: 'zai-org-glm-5-2',
   messages: [{ role: 'user', content: 'Hello!' }],
@@ -182,7 +182,7 @@ const res = await venice.chat({
 console.log(res.choices[0].message.content)
 ```
 
-`VeniceClient` and `createAuthFetch` sign a fresh (legacy-named) `X-Sign-In-With-X` header for every request and retry `429`s; `402` top-ups happen automatically only when `autoTopUp` is enabled. The SDK signs with an EVM private key and pays on Base; for Solana, sign manually as above.
+The constructor takes a `0x`-prefixed hex private key and optional `{ apiUrl, autoTopUp, timeoutMs }` (default timeout 180 s). `VeniceClient` and `createAuthFetch` sign a fresh (legacy-named) `X-Sign-In-With-X` header for every request, including retries. `VeniceClient` retries `429` up to 3 times (1 s, 2 s, 4 s). On `402` it tops up and retries only when `autoTopUp` is enabled; otherwise it throws a `VeniceError` with code `INSUFFICIENT_BALANCE`. Other methods: `chatStream`, `embeddings`, `models`, `getBalance`, `getTransactions`, `images.*`, `audio.*`, `video.*`, `responses.*`. The SDK signs with an EVM private key and pays on Base; for Solana, sign manually as above.
 
 ### First-time top-up (wallet → credits)
 
@@ -212,13 +212,14 @@ Wallet holders can also mint a regular API key without the web UI: `GET /api_key
 
 | Status | Body | Likely cause |
 |---|---|---|
-| `401` | `{ "error": "Authentication failed" }` | Missing, malformed or revoked API key. |
-| `401` | `{ "error": "Authentication failed - Pro subscription is inactive…" }` | Key belongs to an account without an active plan. |
+| `401` | `{ "error": "Authentication failed" }` | Malformed, unknown, expired or revoked API key, or only a SIWX header on a Bearer-only route. |
+| `401` | `{ "error": "Admin API key required" }` | `INFERENCE` key on an admin-only route (`/api_keys` management, rate-limit log, `/billing/*`). |
 | `401` | `{ "error": "This model is only available to Pro users" }` | API-key account without a paid plan calling a Pro-only model (x402 wallets are not affected). |
 | `401` | `{ "error": "<message>", "code": "X402_SIGN_IN_…" }` | Bad SIWX on an inference route - see codes below. |
 | `401` | `{ "error": "Invalid Sign-in-with-x signature" }` | Bad SIWX on `/x402/balance` or `/x402/transactions`. |
-| `402` | x402 discovery body (`x402Version`, `accepts`, `authOptions`) | No auth header at all on a Bearer-or-SIWX route, or no SIWX on `/x402/balance` / `/x402/transactions`. |
+| `402` | x402 discovery body (`x402Version`, `accepts`, `authOptions`) | No auth header at all on a route that needs credentials, or no SIWX on `/x402/balance` / `/x402/transactions` (there `accepts` is empty). |
 | `402` | `{ "code": "PAYMENT_REQUIRED", "reason": "insufficient_balance", … }` | Wallet credit below $0.10 - top up via `/x402/top-up`. |
+| `402` | `{ "error": "Insufficient USD or Diem balance…" }` on a wallet | Credit is above $0.10 but below this request's quoted price (video / audio queue). |
 | `402` | `{ "error": "Insufficient USD or Diem balance…" }` or "API key … spend limit exceeded" | API-key account out of funds, or the key hit its `consumptionLimits`. |
 | `403` | `{ "error": "You can only access balance for your own wallet" }` (or transaction history) | SIWX signer ≠ `{wallet}` in the path. |
 | `403` | `{ "error": "This model is not permitted by the privacy setting of this API key" }` (or a more specific message) | The key's `modelPrivacy` excludes that model. |
@@ -231,4 +232,4 @@ Wallet holders can also mint a regular API key without the web UI: `GET /api_key
 - Bearer keys behave like passwords - store in a secret manager, rotate on compromise, scope with `consumptionLimits` and `modelPrivacy`.
 - SIWX needs a private-key signer on the client. In browsers use a wallet provider (MetaMask or WalletConnect on EVM, Phantom or a wallet-standard adapter on Solana) - never ship raw private keys.
 - A signed header lives at most 5 minutes and each nonce works once, so sign per request rather than caching headers.
-- Rate limits are per account (Bearer; per model) or per wallet (x402 concurrency). See [`venice-api-keys`](../venice-api-keys/SKILL.md) and [`venice-errors`](../venice-errors/SKILL.md).
+- Model rate limits apply per account and model; an x402 wallet is billed and limited as an account (its own, or the Venice account it is linked to) and also has a 5-in-flight concurrency cap. The error budget is keyed per API key, or per IP for wallet requests. See [`venice-api-keys`](../venice-api-keys/SKILL.md) and [`venice-errors`](../venice-errors/SKILL.md).

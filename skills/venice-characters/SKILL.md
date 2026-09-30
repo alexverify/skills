@@ -39,7 +39,7 @@ Response: `{ "object": "list", "data": [Character, ...] }` (no total count — p
 | `search` | string, ≤ 200 chars | Case-insensitive substring match on name, description, or tag. `#Tag` terms also match tags exactly (URL-encode `#` as `%23`). |
 | `categories` | string[], ≤ 20 (each ≤ 100 chars) | Repeat the param or comma-separate. Matches any. |
 | `tags` | string[], ≤ 20 (each ≤ 100 chars) | Repeat or comma-separate. Exact tag name, matches any. |
-| `modelId` | string[], ≤ 20 | Repeat or comma-separate. Filters on the character's stored model ID — see Gotchas. |
+| `modelId` | string[], ≤ 20 (each ≤ 200 chars) | Repeat or comma-separate. Filters on the character's stored model ID — see Gotchas. |
 | `isAdult` | `"true"` / `"false"` | **Exclusive**: `true` returns *only* adult characters; omitted or `false` returns only non-adult ones. |
 | `isPro` | `"true"` / `"false"` | `true` = only characters whose model is a Pro model in the Venice app. `false` = no filter. Overrides `modelId` when both are sent. |
 | `isWebEnabled` | `"true"` / `"false"` | `true` = only web-enabled characters. `false` = no filter. |
@@ -62,12 +62,12 @@ Response: `{ "object": "list", "data": [Character, ...] }` (no total count — p
 | `id` | UUID. |
 | `slug` | **Use this as `character_slug` in chat.** Same as the public ID in `venice.ai/c/<slug>`. |
 | `name`, `description` | `description` may be `null`. |
-| `photoUrl`, `shareUrl` | Typed nullable; `shareUrl` is `https://venice.ai/c/<slug>`. |
+| `photoUrl`, `shareUrl` | Typed nullable; `shareUrl` is `https://venice.ai/c/<slug>` (from `GET /characters/{slug}` it may also carry the author's `?ref=` referral code). |
 | `author` | 5-character anonymized ID derived from the author. |
 | `tags[]` | Tag names. |
 | `featured`, `adult`, `webEnabled` | Booleans. |
-| `modelId` | Venice API model ID the character was built for (e.g. `venice-uncensored-1-2`). |
-| `stats` | `{ averageRating, imports, ratingCount, ratingSum, userRating }`. Missing stats come back as `0`; `userRating` is `null` in list results. |
+| `modelId` | Venice API model ID the character was built for (e.g. `venice-uncensored-1-2`); Venice's default chat model if the character has none. |
+| `stats` | `{ averageRating, imports, ratingCount, ratingSum, userRating }`. Missing stats come back as `0`; `userRating` is currently always `null`. |
 | `createdAt`, `updatedAt` | ISO-8601. |
 
 ## `GET /characters/{slug}`
@@ -77,7 +77,7 @@ curl "https://api.venice.ai/api/v1/characters/alan-watts" \
   -H "Authorization: Bearer $VENICE_API_KEY"
 ```
 
-Returns `{ "object": "character", "data": Character }`. `404` if the character doesn't exist, isn't approved/API-visible, or is adult while your account has the mature filter on. The path also resolves a character's UUID `id`.
+Returns `{ "object": "character", "data": Character }`. `404` if the character doesn't exist, isn't approved/API-visible (your own characters are exempt), or is adult while your account has the mature filter on. The path also resolves a character's UUID `id`.
 
 ## `GET /characters/{slug}/reviews`
 
@@ -132,7 +132,7 @@ What Venice does with the slug:
 - Prepends the character's system prompt (and any character context messages) to your conversation.
 - `include_venice_system_prompt` defaults to `true`; set it to `false` for a pure character voice. Characters configured with a custom system prompt turn the Venice prompt off automatically.
 - Unknown or non-API-visible slug → `404 "No character could be found from the provided character_slug"`.
-- **E2EE models skip character injection** — the slug is silently ignored on E2EE requests.
+- **E2EE requests skip character injection** — when an E2EE model is called with the E2EE headers, the slug is silently ignored. The same model in TEE-only mode (no E2EE headers, or `enable_e2ee: false`) applies the character.
 
 `character_slug` is also accepted in `venice_parameters` on `/responses` — see [`venice-responses`](../venice-responses/SKILL.md).
 
@@ -196,7 +196,7 @@ await chat({
 | Code | Meaning |
 |---|---|
 | `400` | Bad query params (e.g. `limit > 100`, `pageSize > 100`, unknown `sortBy`, `search` > 200 chars, > 20 array items). |
-| `401` | Invalid API key, inactive key, or SIWX-only auth (not supported here). |
+| `401` | Unknown, expired or revoked API key, or SIWX-only auth (not supported here). |
 | `402` | No `Authorization` header — x402 discovery challenge. Send a Bearer key. |
 | `404` | Unknown / unapproved / hidden slug (also adult characters when the account's mature filter is on). |
 | `429` | Too many failed requests (the error-rate limiter). |

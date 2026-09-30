@@ -70,7 +70,7 @@ Only the fields below are read; anything else in the form is ignored.
 | `fal-ai/wizper` | `segment` |
 | `elevenlabs/scribe-v2` | `word` |
 | `stt-xai-v1` | `word` |
-| `nvidia/parakeet-tdt-0.6b-v3` | passed through from the Venice-hosted service (may include `segment`, `word`, `char`) |
+| `nvidia/parakeet-tdt-0.6b-v3` | may include `segment`, `word` and/or `char` |
 
 ## Models
 

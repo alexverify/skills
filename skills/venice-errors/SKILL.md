@@ -26,13 +26,15 @@ When a request fails Venice's own schema, `details` is a nested tree (`_errors` 
   "error": "Invalid request parameters",
   "details": {
     "_errors": [],
-    "type": { "_errors": ["Invalid enum value. Expected 'asr' | 'decision' | … , received 'bogus'"] }
+    "type": { "_errors": ["Invalid enum value. Expected 'asr' | 'decision' | … , received 'bogus'", "Invalid enum value. Expected 'all' | 'code', received 'bogus'"] }
   },
   "issues": [
-    { "code": "invalid_enum_value", "path": ["type"], "message": "Invalid enum value. …" }
+    { "code": "invalid_union", "unionErrors": [ … ], "path": ["type"], "message": "Invalid input" }
   ]
 }
 ```
+
+(That is the live response to `GET /models?type=bogus`.)
 
 Many `400`s are plain `StandardError` - handle both. Render `details` / `issues`; don't retry.
 
@@ -49,17 +51,17 @@ Many `400`s are plain `StandardError` - handle both. Render `details` / `issues`
 }
 ```
 
-Note `error` is an **object** here, so OpenAI SDKs can detect it. Trim the prompt or lower `max_completion_tokens`.
+Note `error` is an **object** here, so OpenAI SDKs can detect it. `message` is the provider's wording when Venice can extract it, otherwise the text above - match on `code`, not `message`. Trim the prompt or lower `max_completion_tokens`.
 
 ### 4. Upstream provider rejection (`400`)
 
-When the request passed Venice's schema but the model provider rejected it, Venice returns the provider's message plus a request ID:
+When the request passed Venice's schema but the model provider rejected it, Venice returns the provider's message, plus a `request_id` on routes that track one (chat, for example; `/decisions` omits it):
 
 ```json
-{ "error": "questions.is_urgent.type: Input should be 'noul', 'choice' or 'score'; state: Field required", "request_id": "…" }
+{ "error": "<provider's validation message>", "request_id": "…" }
 ```
 
-FastAPI-style validation errors (e.g. from the TypeSafe provider behind `POST /decisions`, which answers `422`) are surfaced as `400` with up to five `field.path: message` items joined by `; `. If Venice can't extract a message you get `"Invalid request parameters. For assistance, please reach out to support@venice.ai and reference request ID: <id>"`. Fix the input; quote `request_id` to support.
+FastAPI-style validation errors (e.g. from the TypeSafe provider behind `POST /decisions`, which answers `422`) are surfaced as `400` with up to five `field.path: message` items joined by `; `. If Venice can't extract a message you get `"Invalid request parameters. For assistance, please reach out to support@venice.ai"`, followed by `" and reference request ID: <id>"` when there is one. These count against the lenient unsupported-feature budget on chat / responses (see [Error budget](#error-budget)). Fix the input; quote `request_id` to support.
 
 ### 5. `ContentViolationError` - `422` content policy
 
@@ -70,7 +72,7 @@ FastAPI-style validation errors (e.g. from the TypeSafe provider behind `POST /d
 }
 ```
 
-Returned by chat, responses, image, video and audio generation. `suggested_prompt` is only emitted by `/audio/queue` and `/audio/retrieve`; when present, retry once with it if the user consents. Other `422`s include `"Your input was blocked by content moderation."` and media-validation failures (image too large, bad aspect ratio, audio/video duration out of range, ASR unable to process the audio).
+Returned by chat, responses, image edit and multi-edit, and audio generation. `/image/generate` does not use it (a blocked image comes back as a `200` with `x-venice-is-content-violation: true`), and video content-policy rejections arrive on `/video/retrieve` rather than on queue. `suggested_prompt` is only emitted by `/audio/queue` and `/audio/retrieve`; when present, retry once with it if the user consents. Other `422`s include `"Your input was blocked by content moderation."` and media-validation failures (image too large, bad aspect ratio, audio/video duration out of range, ASR unable to process the audio).
 
 ### 6. `ProviderContentPolicyError` - `422` on `/video/retrieve`
 
@@ -143,7 +145,7 @@ On a route that accepts API key **or** wallet, a `402` comes in two forms. Both 
 
 `topUpInstructions` describes the Base rail only; read `accepts[]` from `POST /x402/top-up` to pay on Solana (and send `PAYMENT-SIGNATURE`, the canonical header - `X-402-Payment` / `X-PAYMENT` still work). The `PAYMENT-REQUIRED` header is the base64 x402 `paymentRequired` object (`x402Version`, `error`, `resource`, `accepts[]`, `extensions`), not the body. See [`venice-x402`](../venice-x402/SKILL.md).
 
-API-key `402`s are plain: `{ "error": "Insufficient USD or Diem balance to complete request. Visit https://venice.ai/settings/api to add credits." }`, or the per-key spend-limit variants ("API key DIEM spend limit exceeded…" / "API key USD spend limit exceeded…").
+API-key `402`s are plain: `{ "error": "Insufficient USD or Diem balance to complete request. Visit https://venice.ai/settings/api to add credits." }`, or the per-key spend-limit variants ("API key DIEM spend limit exceeded…" / "API key USD spend limit exceeded…"). A wallet can get the same plain "Insufficient USD or Diem balance…" body when its credit clears the $0.10 floor but not the quoted price of this request (e.g. `/video/queue`, `/audio/queue`) - top up and retry.
 
 ### 9. x402 sign-in failures (`401`)
 
@@ -153,17 +155,17 @@ On inference routes a bad `SIGN-IN-WITH-X` returns `{ "error": "<message>", "cod
 
 | Status | Typical body | Meaning | What to do |
 |---|---|---|---|
-| `400` | `DetailedError`, `StandardError`, context-overflow object, or upstream `{ error, request_id }` | Malformed input, unsupported option for this model, provider rejection. Also `PAYMENT_HEADER_NOT_ACCEPTED` if you send an x402 payment header anywhere but `/x402/top-up`. | Fix and re-send. **Don't retry.** |
-| `401` | `StandardError` or `{ error, code }` | Bad/missing API key ("Authentication failed"), inactive subscription, bad SIWX, or "This model is only available to Pro users" (API-key accounts without a paid plan on a Pro-only model). | Fix credentials / plan. **Don't retry.** |
+| `400` | `DetailedError`, `StandardError`, context-overflow object, or upstream `{ error, request_id }` | Malformed input, unsupported option for this model, provider rejection, invalid JSON (`"Invalid JSON request"`), or a `POST` whose `Content-Type` is neither JSON nor multipart (`"'Content-Type' must be 'application/json'"`). Also `PAYMENT_HEADER_NOT_ACCEPTED` if you send an x402 payment header to an inference route instead of `/x402/top-up`. | Fix and re-send. **Don't retry.** |
+| `401` | `StandardError` or `{ error, code }` | Unknown, expired or revoked API key ("Authentication failed"), a non-ADMIN key on an admin-only route ("Admin API key required"), bad SIWX, or "This model is only available to Pro users" (API-key accounts without a paid plan on a Pro-only model). | Fix credentials / plan. **Don't retry.** |
 | `402` | See shape 8 | No credentials (discovery), wallet balance too low, or API-key account / key spend limit exhausted. | x402: top up then retry. API key: add credits or raise the key's limit. |
 | `403` | `StandardError` | Entitled-but-blocked: model blocked in your country (`regionRestrictions`), key's `modelPrivacy` forbids the model, API access disabled, SIWX wallet ≠ path wallet. | **Don't retry.** |
 | `404` | `StandardError` | Unknown model ("Specified model not found: …", sometimes with a suggestion or a "has been deprecated. Please use …" hint), unknown character, expired media. | Fix the ID. |
-| `409` | `StandardError` | `/video/queue` needs additional consent. | See [`venice-video`](../venice-video/SKILL.md). |
+| `409` | `{ error: { code: "needs_consent", message }, consent_flow, face_media_roles, consent, docs_url }` (video) or `{ error, message, details }` (x402) | `/video/queue` needs consent (only on unlisted model ids; listed models never ask), or an x402 top-up payment that was already processed. | See [`venice-video`](../venice-video/SKILL.md) / [`venice-x402`](../venice-x402/SKILL.md). |
 | `410` | `StandardError` | Retired endpoint (`GET /billing/usage`, `POST /video/transcriptions`). Message names the replacement. | Migrate. **Never retry.** |
-| `413` | `PayloadTooLargeError` | Body or file too large. | Shrink the upload. |
-| `415` | `StandardError` | Wrong `Content-Type` (JSON vs multipart). | Fix headers. |
+| `413` | `PayloadTooLargeError` | JSON body over 35 MB (`"Request body exceeds the maximum allowed size."`) or a multipart file over 25 MB. | Shrink the upload. |
+| `415` | `StandardError` | Rare: `/image/multi-edit` with an empty body. A wrong `Content-Type` on any route is answered with `400`. | Fix headers. |
 | `422` | `ContentViolationError`, `ProviderContentPolicyError`, or `StandardError` | Content policy, or media that can't be processed (dimensions, duration, unreadable audio). | Change the prompt / media. One retry with `suggested_prompt` if offered. |
-| `429` | `StandardError` or `{ error, code }` | Request/token rate limit, error budget exhausted, model overloaded, or x402 concurrency (`X402_CONCURRENCY_LIMIT`, 5 in-flight per wallet). | See rate limits below. |
+| `429` | `StandardError` or `{ error, code }` | Request/token rate limit, error budget exhausted, model overloaded, x402 concurrency (`X402_CONCURRENCY_LIMIT`, 5 in-flight per wallet), or a per-route limiter (crypto RPC, `/x402/*`, `/tee/*`, retired endpoints). | See rate limits below. |
 | `500` | `StandardError` | Unexpected failure. | Backoff and retry. |
 | `502` | `StandardError` | Upstream failure (TTS, ASR, TEE, video fetch). | Backoff and retry. |
 | `503` | `StandardError` | Model offline or at capacity. | Backoff; consider a fallback model. |
@@ -176,12 +178,14 @@ Three independent header families - they share a prefix but not units, so read t
 | Headers | Emitted by | Reset unit |
 |---|---|---|
 | `x-ratelimit-limit-requests`, `x-ratelimit-remaining-requests`, `x-ratelimit-reset-requests` (+ `-tokens` variants) | Model rate limits on inference routes (per account, per model, requests per minute/day and tokens per minute) | Unix **milliseconds** |
-| `x-ratelimit-remaining`, `x-ratelimit-resets` | The error budget, on every authenticated route | Unix **milliseconds** |
-| `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` | `/crypto/rpc/{network}`, only on its `429` | Unix **seconds** |
+| `x-ratelimit-remaining`, `x-ratelimit-resets` | The error budget, on most responses from routes that need credentials (not on the no-credentials `402`) | Unix **milliseconds** |
+| `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` | `/crypto/rpc/{network}`, only on the `429` from its per-minute cap | Unix **seconds** |
 
 Model-limit `429`s say `"Rate limit exceeded"`. Pre-fetch your caps with `GET /api_keys/rate_limits` and see past hits in `GET /api_keys/rate_limits/log` ([`venice-api-keys`](../venice-api-keys/SKILL.md)).
 
-**Overloaded upstream**: `429` with `Retry-After` (seconds, default 30) and a message like "The model is currently overloaded. Please try again later." (image routes return `{ "error": "modelOverloaded" }`). Honor `Retry-After`.
+Per-route limiters return `429` without these headers: `/x402/top-up` (10/min per IP), `/x402/balance` (30/min per wallet) and `/x402/transactions` (20/min per wallet) say `"Rate limit exceeded. Please try again later."`; `/tee/*` (10/min per IP) says `"Rate limit exceeded."`; the retired endpoints allow 60/min per IP.
+
+**Overloaded upstream**: `429` with `Retry-After` (seconds, default 30) and a message like "The model is currently overloaded. Please try again later." Honor `Retry-After`.
 
 ### Error budget
 
@@ -192,13 +196,13 @@ Failed requests are rate-limited harder than successful ones:
 | Failed requests | 50 per 30 s | Any `4xx` except `429` (5xx never count) | `FAILED_REQUESTS` |
 | Unsupported feature requests | 200 per 30 s, `/chat/completions` and `/responses` only | Requests asking a model for a capability it lacks, or provider-side rejections of otherwise valid requests | `UNSUPPORTED_FEATURE_REQUESTS` |
 
-Buckets are per API key (or per IP for x402), per `model`, per OpenAI `user` string. Once a bucket is exhausted **every** request in it gets `429` until reset, with:
+Buckets are per API key (or per IP for x402), per `model`, per OpenAI `user` string; multipart uploads don't expose `model` / `user` in time, so they share the key's (or IP's) bucket. Once a bucket is exhausted **every** request in it gets `429` until reset, with:
 
 ```
 Too many failed attempts (> 50) resulting in a non-success status code. Please wait 30 seconds and try again. See https://docs.venice.ai/api-reference/rate-limiting for more information.
 ```
 
-So a client that blindly retries `400`/`401`/`402` locks itself out. Stop on non-retryable errors.
+The unsupported-feature bucket uses the same wording with `> 200`. So a client that blindly retries `400`/`401`/`402` locks itself out. Stop on non-retryable errors. (The no-credentials `402`, the `Content-Type` and invalid-JSON `400`s, and the 35 MB JSON-body `413` are rejected before the budget is checked and don't count.)
 
 ## Retry strategy
 
@@ -210,6 +214,7 @@ So a client that blindly retries `400`/`401`/`402` locks itself out. Stop on non
 
 - `402` with `code: "PAYMENT_REQUIRED"` - top up via `/x402/top-up`, then retry.
 - `402` with `x402Version` (no credentials) - add `Authorization` or `SIGN-IN-WITH-X`.
+- Any retry with wallet auth needs a **newly signed** `SIGN-IN-WITH-X` header - each nonce is accepted once, so re-sending the original header fails with `X402_SIGN_IN_NONCE_REUSED`.
 - `402` on an API key - surface to the user.
 - `422` with `suggested_prompt` - one retry with the safer prompt.
 
@@ -280,13 +285,13 @@ Overload errors use `type: "server_error"`, `code: "model_overloaded"` and may c
 
 ## Request-ID correlation
 
-Upstream-rejection bodies carry `request_id`, and `/crypto/rpc/*` sets an `X-Request-ID` header. Include either (plus `x-venice-version` from the response headers) in support tickets. Other routes don't guarantee a request ID, so keep your own client-side correlation ID too.
+Upstream-rejection bodies on chat carry `request_id`, and `/crypto/rpc/{network}` sets an `X-Request-ID` header on proxied responses. Include either (plus `x-venice-version` from the response headers) in support tickets. Other routes don't guarantee a request ID, so keep your own client-side correlation ID too.
 
 ## Common gotchas
 
 - A `402` from `/x402/top-up` with no payment header is the **expected discovery** response.
 - A `402` (not `401`) on an inference route usually means you sent no auth header at all.
 - `x-ratelimit-remaining` without a suffix is the error budget, not your request quota.
-- A `429` can come from four different limiters - read the message and headers before deciding how long to wait.
+- A `429` can come from several different limiters (model limits, error budget, overload, x402 concurrency, per-route caps) - read the message and headers before deciding how long to wait.
 - `DetailedError.details` is a nested `_errors` tree, not a flat map. Walk it recursively.
 - In SSE streams, `data: [DONE]` is the end of the stream (also after an error chunk), not a keepalive.

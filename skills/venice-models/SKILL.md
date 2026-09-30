@@ -82,7 +82,7 @@ curl "https://api.venice.ai/api/v1/models?type=text"
 | `type` | One of the 10 model types above. |
 | `created` | Unix seconds - release date on the Venice API. |
 | `context_length` | Text models only. OpenAI-compatible mirror of `model_spec.availableContextTokens`. |
-| `discount_to_user` | Reseller-only (0 < x < 1). Returned only to the partner whose agreement it belongs to; everyone else never sees it - treat absent as no discount. |
+| `discount_to_user` | Reseller-only (0 < x < 1). Returned only to the reselling partner whose agreement it belongs to and omitted for other callers - treat absent as no discount. |
 | `model_spec` | Everything below. |
 
 ### `model_spec` - common fields
@@ -96,8 +96,8 @@ curl "https://api.venice.ai/api/v1/models?type=text"
 | `uncensored` | Present and `true` only for models Venice classifies as uncensored (all modalities). Absent otherwise - never `false`. Upstream providers may still filter. |
 | `betaModel` | Model is in beta status (still callable). |
 | `beta` | Model is restricted to beta-access accounts. Only appears in lists returned to such accounts. |
-| `regionRestrictions` | Country codes where the model is **blocked**. Requests from those countries get `403` "The specified model is unavailable in <country>…". Absent on unrestricted models. |
-| `deprecation` | `{ autoRemap, date, removesAt, replacementModelId?, startsAt? }` - present only when retirement is scheduled. The model drops out of `/models` at `removesAt`; `autoRemap: true` means requests may be silently routed to `replacementModelId`. |
+| `regionRestrictions` | Country codes where the model is **blocked** (the OpenAPI description reads "intended to be available", but requests are rejected *from* the listed countries). Those requests get `403` "The specified model is unavailable in <country>…". Absent on unrestricted models. |
+| `deprecation` | `{ autoRemap, date, removesAt, replacementModelId?, startsAt? }` - present only when retirement is scheduled. The model drops out of `/models` at `removesAt`; `autoRemap: true` means Venice may remap requests for this ID to `replacementModelId` instead of returning an error. |
 | `model_sets` | Text, image and video only. Curation tags such as `venice_recommendations`, `featured`, and for video `audio`, `uncensored`, `high_resolution`, `fast`, … (served live but not declared in the OpenAPI schema). |
 
 ### `model_spec.capabilities` - text models
@@ -111,7 +111,7 @@ curl "https://api.venice.ai/api/v1/models?type=text"
 | `supportsReasoning` | Model emits reasoning. |
 | `supportsReasoningEffort` | Honors `reasoning_effort` / `reasoning.effort`. When `true`, also `reasoningEffortOptions` (subset of `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` - `none` means reasoning can be turned off) and `defaultReasoningEffort`. |
 | `supportsVision` | Accepts `image_url` parts. |
-| `supportsMultipleImages` + `maxImages` | More than one image per request; `maxImages` is the cap. |
+| `supportsMultipleImages` + `maxImages` | More than one image per request; `maxImages` is the model's advertised limit. Chat hard-caps every model at 10 images per message. |
 | `supportsVideoInput` + `maxVideos` | Accepts `video_url` parts; `maxVideos` present on some models. |
 | `supportsAudioInput` | Accepts `input_audio` parts. |
 | `supportsWebSearch` | `venice_parameters.enable_web_search` - currently `true` on every text model. |
@@ -125,9 +125,9 @@ curl "https://api.venice.ai/api/v1/models?type=text"
 - **Text** - `constraints` is optional (only a handful of models carry it): `temperature.default`, `top_p.default`, optional `{frequency,presence,repetition}_penalty.default`.
 - **Image** - `constraints`: `promptCharacterLimit`, `widthHeightDivisor`, `steps.{default,max}`, optional `aspectRatios[]` + `defaultAspectRatio`, optional `resolutions[]` + `defaultResolution`, optional `qualities[]` + `defaultQuality` (models that accept `quality`), optional `maxStyleReferences` + `supportsStyleReferenceStrength`. Alongside: `supportsStyleReferences`, plus `supportsWebSearch` and `supportsOptimizePromptThinking` (served live, not in the OpenAPI schema).
 - **Inpaint / edit** - `constraints`: `aspectRatios[]`, `promptCharacterLimit`, `combineImages`, optional `maxInputImages`, `singleImageAspectRatio` (if `false`, single-image edits keep input dimensions and ignore `aspect_ratio`), optional `resolutions[]`/`defaultResolution`, `qualities[]`/`defaultQuality`. Alongside: `supportsOptimizePromptThinking`.
-- **Video** - `constraints`: `model_type` (`text-to-video` / `image-to-video` / `video`), `aspect_ratios[]`, `resolutions[]`, `durations[]` (e.g. `"5s"`; an empty array means no fixed set), `audio`, `audio_configurable`, `audio_input`, `per_reference_audio`, `video_input`, optional `prompt_character_limit` (default 2500), `reference_image_min_short_side_pixels`, `reference_image_min_aspect_ratio`, `reference_image_max_aspect_ratio`, and a `topaz` block (`models`, `sliders`, `selects`, `no_upscale_models`, `h264_output`, `prompt`) on enhancement models only. The `audio_input` … `reference_image_*` keys are served live but not declared in the OpenAPI schema.
-- **TTS** (top level of `model_spec`) - `voices[]`, `default_format`, `supported_formats[]` (an explicit format outside this list is rejected), `supports_custom_voice_id`, and `voice_cloning` `{ mode: "zero_shot" | "persistent", accepted_formats[], min_sample_seconds, retention_days }` on models whose cloning is open to you (use with `POST /audio/voices`, see [`venice-audio-speech`](../venice-audio-speech/SKILL.md)). Per-model toggles like `prompt` / `temperature` / `top_p` support are **not** exposed here - treat the speech request schema as the support matrix.
-- **Music / audio generation** (top level) - `supports_lyrics`, `lyrics_required`, `supports_force_instrumental`, `supports_lyrics_optimizer`, `supports_loop`, `supports_custom_voice_id`, `supports_language_code`, `supports_speed`, `supported_formats[]`, `default_format`, `prompt_character_limit`, `min_prompt_length`, optional `lyrics_character_limit`, `duration_options[]`, `min_duration` / `max_duration` / `default_duration`, `voices[]` / `default_voice`, `default_speed` / `min_speed` / `max_speed`.
+- **Video** - `constraints`: `model_type` (`text-to-video` / `image-to-video` / `video`), `aspect_ratios[]`, `resolutions[]`, `durations[]` (e.g. `"5s"`; most upscale and video-to-video models list `"Auto"`, meaning the source length — omit `duration` for them), `audio`, `audio_configurable`, `audio_input`, `per_reference_audio`, `video_input`, optional `prompt_character_limit` (default 2500), optional `reference_image_min_short_side_pixels`, `reference_image_min_aspect_ratio`, `reference_image_max_aspect_ratio`, and a `topaz` block (`models`, `sliders`, `selects`, `no_upscale_models`, `h264_output`, `prompt`) on enhancement models only. The `audio_input` … `reference_image_*` keys are served live but not declared in the OpenAPI schema.
+- **TTS** (top level of `model_spec`) - `voices[]`, `default_format`, `supported_formats[]` (an explicit format outside this list is rejected), `supports_custom_voice_id`, and `voice_cloning` `{ mode: "zero_shot" | "persistent", accepted_formats[], min_sample_seconds, retention_days }` on models whose cloning is open to you (use with `POST /audio/voices`, see [`venice-audio-speech`](../venice-audio-speech/SKILL.md)). Per-model toggles like `prompt` / `temperature` / `top_p` support are **not** exposed here - use the per-model table in [`venice-audio-speech`](../venice-audio-speech/SKILL.md) as the support matrix (the published schema text is incomplete).
+- **Music / audio generation** (top level) - `supports_lyrics`, `lyrics_required`, `supports_force_instrumental`, `supports_lyrics_optimizer` (served live, not in the OpenAPI schema), `supports_loop`, `supports_custom_voice_id`, `supports_language_code`, `supports_speed`, `supported_formats[]`, `default_format`, `prompt_character_limit`, `min_prompt_length`, optional `lyrics_character_limit`, `duration_options[]`, `min_duration` / `max_duration` / `default_duration`, `voices[]` / `default_voice`, `default_speed` / `min_speed` / `max_speed`.
 - **Voice changer** (music models with `voice_changer: true`) - adds `supports_background_noise_removal`, `supports_seed`, `accepted_audio_formats[]`, `max_source_audio_duration_seconds`. These run on `/audio/voice-changer/*`, not `/audio/queue` - see [`venice-audio-voice-changer`](../venice-audio-voice-changer/SKILL.md). No voice-changer model is publicly listed today; check `?type=music` for `voice_changer: true` before relying on it.
 - **Embedding** (top level) - `embeddingDimensions`, `maxInputTokens`, `supportsCustomDimensions` (present only when `true`).
 - **Decision** (top level) - `maxStateTokens` (state + longest question), `maxTotalTokens` (state + all questions).
@@ -170,7 +170,7 @@ curl "https://api.venice.ai/api/v1/models/traits?type=text"
 }
 ```
 
-Possible trait keys: `default`, `fastest`, `most_uncensored`, `eliza-default` (any type), `default_code`, `default_reasoning`, `default_vision`, `function_calling_default`, `most_intelligent` (text), `highest_quality` (image). A key only appears while some model holds it - `fastest` is currently unassigned for text. Today only `text` and `image` return non-empty maps. The values above are a snapshot; resolve them at runtime.
+Possible trait keys: `default`, `fastest`, `most_uncensored`, `eliza-default` (any type), `default_code`, `default_reasoning`, `default_vision`, `function_calling_default`, `most_intelligent` (text), `highest_quality` (image). A key only appears while some model holds it - `fastest` is currently unassigned for text. Today only `text` and `image` (and the `all` / `code` filters built from them) return non-empty maps. `?type=all` merges every type into one map, so keys shared across types collide - e.g. `default` resolves to an image model there. The values above are a snapshot; resolve them at runtime.
 
 A trait name can also be sent directly as `model` (e.g. `"model": "default_reasoning"`) and Venice resolves it per request.
 
@@ -193,7 +193,7 @@ curl "https://api.venice.ai/api/v1/models/compatibility_mapping?type=text"
 }
 ```
 
-Keys are legacy OpenAI / Anthropic / older Venice IDs; values are the Venice model each one is routed to. `?type=embedding` currently maps `text-embedding-ada-002` → `text-embedding-bge-m3`; other types are empty. Like traits, an alias can be sent directly as `model`. Useful when porting code that hard-codes old OpenAI IDs - but check the target's capabilities, since the mapping is by ID only.
+Keys are legacy OpenAI / Anthropic / older Venice IDs; values are the Venice model each one resolves to. `?type=embedding` currently maps `text-embedding-ada-002` → `text-embedding-bge-m3`; other types are empty. Like traits, an alias can be sent directly as `model`. Useful when porting code that hard-codes old OpenAI IDs - but check the target's capabilities, since the mapping is by ID only.
 
 ## Common patterns
 
@@ -225,13 +225,18 @@ if (aspectRatios && !aspectRatios.includes(myAspect)) throw new Error('bad aspec
 ### Estimate LLM cost
 
 ```ts
-const p = spec.pricing
+// textSpec = model_spec of a text model from /models?type=text
+// inputTokens = total prompt tokens, including cachedTokens
+const p = textSpec.pricing
 const tier = p.extended && inputTokens > p.extended.context_token_threshold ? p.extended : p
+const cacheRate = tier.cache_input?.usd ?? tier.input.usd
 const cost =
-  (inputTokens / 1_000_000) * tier.input.usd +
-  (outputTokens / 1_000_000) * tier.output.usd +
-  (cachedTokens / 1_000_000) * (tier.cache_input?.usd ?? 0)
+  ((inputTokens - cachedTokens) / 1_000_000) * tier.input.usd +
+  (cachedTokens / 1_000_000) * cacheRate +
+  (outputTokens / 1_000_000) * tier.output.usd
 ```
+
+Cache-write tokens (models with `cache_write`) are billed at that rate instead of `input`.
 
 ## Gotchas
 
@@ -242,4 +247,4 @@ const cost =
 - `uncensored` is omitted rather than `false` - test with `=== true`.
 - Traits and aliases differ by `type` - there is no global default; always pass `?type=...`.
 - An API key restricted to private models (`modelPrivacy: PRIVATE_TEXT` / `PRIVATE_ONLY`) sees a filtered list; unauthenticated calls see everything public.
-- Some fields are served live but missing from the OpenAPI `ModelResponse` schema (`model_sets`, image `supportsWebSearch` / `supportsOptimizePromptThinking`, several video constraint keys). Strict generated clients may drop them.
+- Some fields are served live but missing from the OpenAPI `ModelResponse` schema (`model_sets`, image `supportsWebSearch`, image and inpaint `supportsOptimizePromptThinking`, music `supports_lyrics_optimizer`, several video constraint keys). Strict generated clients may drop them.

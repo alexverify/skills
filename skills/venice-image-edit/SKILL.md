@@ -27,8 +27,8 @@ For text-to-image generation, see [`venice-image-generate`](../venice-image-gene
 | Response | edited image bytes (PNG/JPEG/WebP) | edited image bytes | `image/png` | `image/png` with alpha |
 | Model | `model` (default `firered-image-edit`) | `modelId` (default `firered-image-edit`) | fixed: `upscaler` | fixed: `bria-bg-remover` |
 
-- Accepted input formats: JPEG, PNG, WebP, HEIF/HEIC, AVIF. SVG is rejected.
-- Files must be < **25 MB** (multipart files over 25 MB return `413`). URLs fetched for edit and multi-edit are capped at 25 MB too.
+- Accepted input formats: JPEG, PNG, WebP, HEIF/HEIC, AVIF. SVG is rejected. Background-remove doesn't pre-validate the format; it passes the image straight to the model.
+- Files must be < **25 MB** (multipart files over 25 MB return `413`). URLs fetched for edit and multi-edit are capped at 25 MB too. JSON bodies over 35 MB (for example a large base64 image) return `413`.
 - URLs are fetched server-side and must be publicly reachable. Private, internal, and metadata hosts are blocked (`400`).
 - All four endpoints return the image as **binary**, never JSON. There is no `return_binary` field (that flag only exists on `/image/generate`).
 - JSON bodies on edit, multi-edit, and background-remove are **strict**: unknown fields are a `400`. `/image/upscale` ignores unknown fields.
@@ -50,9 +50,9 @@ Per model, read `model_spec.constraints`:
 - `maxInputImages` — input-image cap for multi-edit. When it's absent and `combineImages` is `true`, the cap is **3**.
 - `supportsOptimizePromptThinking` — whether `disable_prompt_optimization_thinking` does anything.
 
-Pricing: `pricing.inpaint.usd` per edit, `pricing.resolutions[tier]` / `pricing.quality[tier][level]` on tiered models, and `pricing.inputImages` (`included` + `additional.usd` per extra image) on models that charge per additional input image.
+Pricing: `pricing.inpaint.usd` per edit, `pricing.resolutions[tier]` / `pricing.quality[tier][level]` on tiered models, and `pricing.inputImages` (`included` + `additional.usd` per extra image) on models that charge per additional input image. When `included` is `0` (e.g. `qwen-image-3-edit`, the Grok Imagine edits), every input image is surcharged, including the single image on `/image/edit`.
 
-Representative edit IDs today (the list changes often, so read it from `/models`): `firered-image-edit` (default), `qwen-image-3-edit`, `qwen-image-3-pro-edit`, `nano-banana-2-edit`, `nano-banana-pro-edit`, `gpt-image-2-5-flare-edit`, `gpt-image-2-5-sunburst-edit`, `gpt-image-2-edit`, `seedream-v5-pro-edit`, `seedream-v5-lite-edit`, `muse-image-edit`, `flux-2-max-edit`, `grok-imagine-image-2-0-edit`, `luma-uni-1-edit` (single image only). Older IDs like `qwen-edit` are retired.
+Representative edit IDs today (the list changes often, so read it from `/models`): `firered-image-edit` (default), `qwen-image-3-edit`, `qwen-image-3-pro-edit`, `nano-banana-2-edit`, `nano-banana-pro-edit`, `gpt-image-2-5-flare-edit`, `gpt-image-2-5-sunburst-edit`, `gpt-image-2-edit`, `seedream-v5-pro-edit`, `seedream-v5-lite-edit`, `muse-image-edit`, `flux-2-max-edit`, `grok-imagine-image-2-0-edit`, `luma-uni-1-edit` (single image only). The old `qwen-edit` ID still works as an alias and runs `qwen-edit-uncensored`.
 
 ## `/image/edit`
 
@@ -86,7 +86,7 @@ Multipart equivalent: send `image` as a file part and the other fields as text p
 | `disable_prompt_optimization_thinking` | Optional bool. Only honored by models with `supportsOptimizePromptThinking: true`; ignored elsewhere. |
 | `safe_mode` | Default `true`; blurs adult content. |
 
-There is **no `quality` field** on `/image/edit`; sending it is a `400`. To pick a quality tier (GPT Image models), use `/image/multi-edit` with a single image.
+There is **no `quality` field** on `/image/edit`; sending it is a `400`, and quality-tier models are billed at their `defaultQuality`. To pick a quality tier (GPT Image models), use `/image/multi-edit` with a single image.
 
 Good prompts: *"remove the tree"*, *"add sunglasses to the cat"*, *"make the sky a vivid orange sunrise"*.
 
@@ -160,7 +160,7 @@ Multipart accepts only file parts for `images` (no URLs or base64), and at most 
 | `Content-Type` | Detected from the output bytes (`image/png`, `image/jpeg`, or `image/webp`). |
 | `x-venice-model-id`, `x-venice-model-name` | The model that ran. |
 | `x-venice-is-blurred` | `"true"` if `safe_mode` blurred the output. |
-| `x-venice-is-content-violation` | `"true"` if the output was flagged. |
+| `x-venice-is-content-violation` | Always `"false"` on a `200`. Flagged edits return `422` instead (see errors). |
 | `x-venice-enhanced-prompt` | URL-encoded rewritten prompt (only when `enhance_prompt` produced one). |
 | `x-venice-model-deprecation-warning`, `x-venice-model-deprecation-date`, `x-venice-deprecated`, `x-venice-deprecated-replacement` | Deprecation signals for the model. |
 
@@ -185,15 +185,15 @@ curl https://api.venice.ai/api/v1/image/upscale \
 | `scale` | number, 2–4 | 2 | Documented as `2` or `4`. Anything below 2 (including the old `scale: 1`) is a `400`. If `width × height × scale²` would exceed 16,777,216 px, the scale is reduced automatically. If no real upscale fits, you get a `400`. |
 | `creativity` | number | 0.01 | How much detail and texture the upscaler adds. Clamped to **0–0.02**, so `0.5` behaves as `0.02`. `null` is coerced to `0`. |
 
-Response: `image/png` bytes. If the input is flagged, you get `200` with a placeholder PNG and no charge.
+Response: `image/png` bytes. Every successful upscale is charged.
 
 Billing (from `/models` `pricing.upscale`): **$0.02** when the effective scale is ≤ 2, **$0.08** when it is above 2. For example, `scale: 3` bills at the 4× rate.
 
-> **Breaking change (upscaler rewrite):** the old `enhance`, `enhanceCreativity`, `enhancePrompt`, and `replication` fields no longer do anything. They are silently ignored, not rejected, so remove them to avoid confusion. `creativity` is **not** `enhanceCreativity` renamed: port `enhanceCreativity: 0.5` as `creativity: 0.02` (the max), not `0.5`.
+> **Breaking change (upscaler rewrite):** the old `enhance`, `enhanceCreativity`, `enhancePrompt`, and `replication` fields no longer do anything. They are silently ignored, not rejected, so remove them to avoid confusion. `creativity` is **not** `enhanceCreativity` renamed: its range is only 0–0.02, so an old `enhanceCreativity: 0.5` sent as `creativity: 0.5` just behaves as `0.02` (the max).
 
 ## `/image/background-remove`
 
-Produce a transparent PNG cutout using Bria RMBG 2.0 (`bria-bg-remover`, anonymized routing, $0.03 per call per `/models`).
+Produce a transparent PNG cutout with `bria-bg-remover` (an `anonymized` model, $0.03 per call per `/models`).
 
 ```bash
 # With base64 (raw or data URI)
@@ -224,10 +224,10 @@ curl https://api.venice.ai/api/v1/image/background-remove \
 |---|---|
 | `400` | Bad params: schema violation or unknown field, invalid or corrupt image, image too small, multi-edit image over 8K, unknown/non-edit model (`Invalid model id`), prompt over the model limit, `aspect_ratio`/`resolution`/`quality` not supported by the model, too many input images, blocked URL, unsupported `Content-Type` (edit, upscale, background-remove). |
 | `401` | Auth failed. |
-| `402` | Insufficient balance. Bearer: `INSUFFICIENT_BALANCE` error. x402: `PAYMENT_REQUIRED` body + `PAYMENT-REQUIRED` header. |
+| `402` | No credentials at all (x402 payment-requirements body + `PAYMENT-REQUIRED` header), insufficient balance (Bearer: `INSUFFICIENT_BALANCE`; x402 wallet: `PAYMENT_REQUIRED` body + header), or the API key's USD/DIEM spend limit is reached. |
 | `403` | The API key's `modelPrivacy` setting blocks the model. A `PRIVATE_ONLY` key can't use anonymized models, which includes most edit models and `bria-bg-remover`. |
 | `413` | Multipart file over 25 MB, or request body too large. |
-| `415` | Unsupported `Content-Type` on `/image/multi-edit` only (send JSON or multipart). |
+| `415` | `/image/multi-edit` only, when the body is empty. A wrong `Content-Type` on any route is a `400` (`"'Content-Type' must be 'application/json'"`) — send JSON or multipart. |
 | `422` | Content-policy violation on edit / multi-edit (`CONTENT_POLICY_VIOLATION`), or an image exceeds a pixel limit during processing (e.g. an `/image/edit` input over 8K). |
 | `429` | Rate limited, or the upstream provider is overloaded. |
 | `500` | Edit / upscale / background removal failed. |
@@ -246,4 +246,4 @@ A `422` content-policy rejection is normally not charged. If Venice's own modera
 - `/image/upscale` with `scale: 4` on a large input is silently reduced to stay under 16 MP, and it still bills at the 4× rate if the effective scale is above 2.
 - `enhance_prompt` on edit / multi-edit bills $0.04 whenever a rewrite is produced. Leave it off for latency- or cost-sensitive calls.
 - `safe_mode: true` can blur otherwise valid outputs; check `x-venice-is-blurred`. Switch to `false` only when you control the input and accept the ToS consequences.
-- Multi-edit on some models charges extra for each input image beyond the included count (`pricing.inputImages`).
+- Some models charge extra for each input image beyond the included count (`pricing.inputImages`). Where `included` is `0`, even a single-image `/image/edit` pays the surcharge.

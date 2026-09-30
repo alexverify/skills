@@ -44,11 +44,11 @@ resp = client.chat.completions.create(
 
 Response shape is the standard OpenAI `chat.completion` object (`id`, `object: "chat.completion"`, `created`, `model`, `choices[].message`, `choices[].finish_reason`, `usage`) plus:
 
-- `cost: {usd, diem}` — the request's cost split by the currency it was charged in (bundled credits count as USD). `0` when the response has no output tokens (those responses are not billed).
-- `venice_parameters` — the effective Venice settings, plus `web_search_citations[]` when search ran.
+- `cost: {usd, diem}` — the request's cost split by the currency it was charged in (bundled credits count as USD). `0` when the response has no output tokens (those responses are not billed). Omitted if the cost can't be computed.
+- `venice_parameters` — the effective Venice settings, plus `web_search_citations[]` (an empty array when no search ran).
 - `usage.prompt_tokens_details.{cached_tokens, cache_creation_input_tokens}` and `usage.completion_tokens_details.reasoning_tokens` when the provider reports them.
 
-`choices[].finish_reason` is one of `stop`, `length`, `tool_calls`, or `content_filter`. `content_filter` is a `200` in which the provider refused or cut the output (e.g. an Anthropic `refusal`); it is not a `422`, so check for it before trusting `message.content`. When a provider blocks mid-stream, the stream instead ends with an in-band error chunk (`type: "content_filter_error"`, `code: "content_blocked_by_provider"`) followed by `[DONE]`.
+`choices[].finish_reason` is one of `stop`, `length`, `tool_calls`, or `content_filter`. `content_filter` is a `200` in which the model refused or the output was cut (e.g. a Claude refusal); it is not a `422`, so check for it before trusting `message.content`. Some providers block mid-stream instead; the stream then ends with an in-band error chunk (`type: "content_filter_error"`, `code: "content_blocked_by_provider"`) followed by `[DONE]`.
 
 `system_fingerprint` is always stripped. With `stream: true`, responses come as SSE `data:` lines in `chat.completion.chunk` format.
 
@@ -61,14 +61,14 @@ The top-level schema is **strict**: unknown top-level fields return `400`. (A fe
 | Field | Notes |
 |---|---|
 | `model` | string — model ID, trait (e.g. `default`, `default_code`), or compatibility mapping. Required. Feature suffixes allowed (see below). Lookups also tolerate dots/underscores/spaces (`kimi k2.6` → `kimi-k2-6`) and a `venice-` prefix (for IDEs that hijack `claude-*` names). |
-| `messages` | array of `system` / `developer` / `user` / `assistant` / `tool` messages. Required, min 1. Assistant messages need non-empty `content` or `tool_calls`. |
+| `messages` | array of `system` / `developer` / `user` / `assistant` / `tool` messages. Required, min 1. Assistant messages with neither `content` nor `tool_calls` are silently dropped. |
 | `temperature` (0–2), `top_p` (0–1), `top_k` (int ≥ 0), `min_p` (0–1), `min_temp`, `max_temp` (0–2) | sampling controls. Some models publish defaults in `model_spec.constraints` |
 | `repetition_penalty` (≥ 0), `frequency_penalty`, `presence_penalty` (−2..2) | repetition controls |
 | `max_completion_tokens` / `max_tokens` *(deprecated)* | integers. Output cap including reasoning tokens. Above the model's `model_spec.maxCompletionTokens` → `400` on models with an enforced API cap. `max_tokens ≤ 0` is ignored; `max_tokens` is ignored when `max_completion_tokens` is set |
 | `n` | number of choices (default `1`; you pay for all choices) |
 | `seed` | positive integer |
 | `stop` / `stop_token_ids` | string or 1–4 strings / array of token IDs |
-| `stream`, `stream_options.include_usage` | SSE streaming (usage chunk is always sent — see Streaming) |
+| `stream`, `stream_options.include_usage` | SSE streaming (Venice sends the usage chunk even without `include_usage` — see Streaming) |
 | `response_format` | `{type:"json_schema", json_schema:{name, schema, strict}}` (preferred), `{type:"json_object"}`, or `{type:"text"}` |
 | `tools`, `tool_choice`, `parallel_tool_calls` | function calling |
 | `logprobs`, `top_logprobs` (int ≥ 0) | log-probabilities |
@@ -80,10 +80,10 @@ The top-level schema is **strict**: unknown top-level fields return `400`. (A fe
 | `verbosity` / `text.verbosity` | `low` \| `medium` \| `high` \| `auto` (both placements accepted) |
 | `anon_user_id` | optional end-user identifier (see below) |
 | `fallbacks` | up to 10 `{model}` entries. Anthropic beta parameter for Claude Fable 5 server-side refusal fallback. Forwarded only on direct Anthropic routes, ignored elsewhere |
-| `include`, `metadata` (string map) | accepted for OpenAI compatibility, not forwarded |
+| `include`, `metadata` | accepted for OpenAI compatibility, removed before validation and not forwarded |
 | `user`, `store` | accepted and discarded (OpenAI compat). `user` is **not** an alias of `anon_user_id` |
 
-**`anon_user_id`** — identifies *your* end user; Venice combines it with your Venice user id when attributing the request upstream. Trimmed; 1–128 characters; printable ASCII only (`0x20`–`0x7E`); must not contain `||`. Violations → `400`. Also accepted on `/responses`.
+**`anon_user_id`** — identifies *your* end user; Venice combines it with your Venice user id when attributing the request upstream. Trimmed (a blank value is treated as absent); 1–128 characters; printable ASCII only (`0x20`–`0x7E`); must not contain `||`. Violations → `400`. Also accepted on `/responses`.
 
 ### Capability gates (400 before inference)
 
@@ -106,12 +106,12 @@ All optional. Unknown keys inside `venice_parameters` are dropped.
 |---|---|---|---|
 | `character_slug` | string | — | Apply a published Venice character (the "Public ID" on its page). Unknown slug → `404`. See [`venice-characters`](../venice-characters/SKILL.md). |
 | `strip_thinking_response` | bool | `false` | Strip reasoning from the response (`<think>` blocks and `reasoning_content`) on reasoning models. |
-| `disable_thinking` | bool | `false` | Disable thinking on supported reasoning models and strip reasoning. Mandatory-reasoning models run at their minimum effort instead; reasoning tokens may still be billed. |
+| `disable_thinking` | bool | `false` | Disable thinking on supported reasoning models and strip reasoning. On models that can't turn reasoning off, reasoning still runs (some drop to their lowest effort) but is stripped from the response; those reasoning tokens may still be billed. |
 | `enable_e2ee` | bool | `true` | On E2EE-capable models, use E2EE when E2EE headers are present. `false` forces TEE-only mode. |
 | `enable_web_search` | `"off"` / `"auto"` / `"on"` | `"off"` | Venice web search. `on` always searches; `auto` lets a classifier decide. |
-| `enable_web_scraping` | bool | `false` | Scrape URLs found in the latest user message (Firecrawl). When URLs are found, scraping replaces web search for that request. |
+| `enable_web_scraping` | bool | `false` | Scrape URLs found in the latest user message. When URLs are found, scraping replaces web search for that request. |
 | `enable_web_citations` | bool | `false` | Ask the model to cite sources as `^1^` / `^1,3^`. |
-| `include_search_results_in_stream` | bool | `false` | Experimental. Streaming only: emit a chunk carrying `venice_parameters.web_search_citations` just before `data: [DONE]`. |
+| `include_search_results_in_stream` | bool | `false` | Experimental. Streaming only: emit a `choices: []` chunk carrying `venice_parameters.web_search_citations` at the end of the stream, before `data: [DONE]`. |
 | `return_search_results_as_documents` | bool | — | Also surface search results as a synthetic tool call (see Web search). |
 | `include_venice_system_prompt` | bool | `true` | Prepend Venice's system prompt to yours. Set `false` for full control. |
 | `enable_x_search` | bool | `false` | xAI native web + X search on models with `supportsXSearch` (Grok). Ignored on other models. Billed per search (~$0.01). |
@@ -167,8 +167,8 @@ Per-**message** caps: 10 `image_url`, 5 `input_audio`, 3 `video_url`, 5 `file` p
 }
 ```
 
-- `url` is a public `https` URL or a `data:image/...;base64,...` URL. Remote URLs are fetched once for validation: redirects are refused, the Content-Type must be an image type, and the image must decode and be ≥ 64 px. Failures → `400` "Supplied image did not pass validation checks."
-- Models with `supportsMultipleImages: true` keep images across the whole conversation (`maxImages` is the per-request cap). Single-image vision models keep images only from the **last** image-bearing message.
+- `url` is a public `http(s)` URL or a `data:image/...;base64,...` URL. Remote URLs are fetched once for validation: redirects are refused, the body must be ≤ 25 MB, the Content-Type must be PNG, JPEG, WebP, HEIF/HEIC, or AVIF, and the image must decode and be ≥ 64 px on each side (data URLs get the same decode + size check). Failures → `400` "Supplied image did not pass validation checks."
+- Models with `supportsMultipleImages: true` keep images across the whole conversation (`maxImages` advertises the model's per-request limit; Venice itself enforces the 10-per-message cap). Single-image vision models keep images only from the **last** image-bearing message; earlier images are removed.
 
 ### Audio (`input_audio`)
 
@@ -199,7 +199,7 @@ Per-**message** caps: 10 `image_url`, 5 `input_audio`, 3 `video_url`, 5 `file` p
 
 ### Prompt caching (`cache_control`)
 
-Any content part can carry `{"cache_control": {"type": "ephemeral"}}` or `{"type": "ephemeral", "ttl": "1h"}`. Explicit markers matter for models that require them (Claude); other providers cache automatically on prefix matches. At most 4 cache breakpoints per request are used; Venice adds its own to the system prompt and conversation history when slots remain. Pair with a stable `prompt_cache_key` for consistent routing. Cache read / write prices are per model (`model_spec.pricing.cache_input` / `cache_write`); hits are reported in `usage.prompt_tokens_details`.
+Any content part can carry `{"cache_control": {"type": "ephemeral"}}` or `{"type": "ephemeral", "ttl": "1h"}`. Explicit markers matter for models that require them (Claude); other models cache automatically on prefix matches. Those models allow at most 4 breakpoints per request; Venice adds its own to the system prompt and conversation history only while your markers leave slots free. Pair with a stable `prompt_cache_key` for consistent routing. Cache read / write prices are per model (`model_spec.pricing.cache_input` / `cache_write`); hits are reported in `usage.prompt_tokens_details`.
 
 ## Tools & function calling
 
@@ -218,12 +218,12 @@ Any content part can carry `{"cache_control": {"type": "ephemeral"}}` or `{"type
 }
 ```
 
-- `tool_choice`: `"auto"`, `"required"`, `"none"`, or `{"type":"function","function":{"name":"get_weather"}}`. `{"type":"auto"}` is normalized to `"auto"`.
+- `tool_choice`: `"auto"`, `"required"`, `"none"`, or `{"type":"function","function":{"name":"get_weather"}}`. `{"type":"auto" | "none" | "required"}` is normalized to the string form.
 - `parallel_tool_calls` defaults to `true` — be ready to run several calls before replying.
 - Reply with one `{"role":"tool","tool_call_id":"...","content":"..."}` message per call, then call again.
 - Flat (`{type, name, parameters}`) and Anthropic (`{name, input_schema}`) tool definitions are converted to the nested format.
-- `finish_reason` is `tool_calls` whenever the message carries tool calls.
-- The schema also accepts `{"type":"web_search"}` / `{"type":"x_search"}` tool entries; they are passed to the provider unchanged (intended for xAI) and do **not** toggle Venice search. Use `venice_parameters.enable_web_search` / `enable_x_search` instead.
+- When the message carries tool calls, Venice reports `finish_reason: "tool_calls"` rather than `stop` (a `length` cut-off stays `length`).
+- The schema also accepts `{"type":"web_search"}` / `{"type":"x_search"}` tool entries, but they do **not** turn on Venice search or xAI X search. Use `venice_parameters.enable_web_search` / `enable_x_search` instead.
 
 ## Reasoning models
 
@@ -236,7 +236,7 @@ Any content part can carry `{"cache_control": {"type": "ephemeral"}}` or `{"type
 ```
 
 - Reasoning arrives in `message.reasoning_content` (`delta.reasoning_content` when streaming); `<think>` tags are removed from `content`. Some providers return encrypted or summarized reasoning.
-- Supported effort values are per model: check `model_spec.capabilities.supportsReasoningEffort`, `reasoningEffortOptions`, and `defaultReasoningEffort`. On Claude and OpenAI models, a value outside `reasoningEffortOptions` → `400` (`none` is always accepted as a Venice-level off switch; on OpenAI models `minimal` maps to the lowest supported level).
+- Supported effort values are per model: check `model_spec.capabilities.supportsReasoningEffort`, `reasoningEffortOptions`, and `defaultReasoningEffort`. On most Claude models and on OpenAI GPT models, a value outside `reasoningEffortOptions` → `400` (`none` is always accepted as a Venice-level off switch; on OpenAI models `minimal` is also accepted and maps to the lowest supported level). Other models are not pre-validated, so stick to `reasoningEffortOptions`.
 - To turn thinking off, prefer `reasoning: {"enabled": false}` or `venice_parameters.disable_thinking: true` — both degrade gracefully on mandatory-reasoning models. `reasoning_effort: "none"` also disables thinking.
 - Some models return `reasoning_details[]` (and Gemini via native transport returns `thought_signature`) on the assistant message. **Pass them back verbatim** on the next turn, especially in tool loops, to preserve thought signatures.
 - Reasoning tokens count toward `max_completion_tokens` and are billed as output.
@@ -261,7 +261,7 @@ Any content part can carry `{"cache_control": {"type": "ephemeral"}}` or `{"type
 }
 ```
 
-Put the JSON Schema under `json_schema.schema` (OpenAI shape) — Anthropic, Gemini-native, and xAI routes read it from there. `json_object` is deprecated and ignored by Anthropic routes. Requires `supportsResponseSchema`.
+Put the JSON Schema under `json_schema.schema` (OpenAI shape) — Claude, Gemini, and Grok models only read it from there. `json_object` is deprecated and ignored by Claude models. Requires `supportsResponseSchema`.
 
 ## E2EE (end-to-end encryption)
 
@@ -281,9 +281,10 @@ On E2EE requests Venice injects nothing: no Venice system prompt, character, web
 ```
 
 - `text/event-stream`, one `data: {chat.completion.chunk}` per event, terminated by `data: [DONE]`.
-- Venice always emits a final `choices: []` chunk with `usage` (and `cost`) before `[DONE]`, whatever `stream_options.include_usage` says.
-- If the upstream fails after headers are sent, you get an in-band `data: {"error": {...}}` chunk (e.g. `code: "model_overloaded"` with `retry_after`, or `content_blocked_by_provider`) followed by `[DONE]`.
-- Web-search citations are **not** in the stream unless `include_search_results_in_stream: true`, in which case a `choices: []` chunk with `venice_parameters.web_search_citations` arrives just before `[DONE]`.
+- Venice requests usage from the model and emits it in a `choices: []` chunk with `usage` (and `cost`) before `[DONE]`, whatever `stream_options.include_usage` says. Usage is not repeated on content chunks.
+- If the upstream fails after headers are sent, you get an in-band `data: {"error": {...}}` chunk (e.g. `code: "model_overloaded"` with `retry_after`, `upstream_error`, or `content_blocked_by_provider`) followed by `[DONE]`.
+- Web-search citations are **not** in the stream unless `include_search_results_in_stream: true`, in which case a `choices: []` chunk with `venice_parameters.web_search_citations` arrives at the end of the stream, before `[DONE]`.
+- With `return_search_results_as_documents: true`, the synthetic `web_search_call` tool call (see Web search) is streamed as a `delta.tool_calls` chunk before the content.
 
 ## Web search
 
@@ -297,8 +298,8 @@ On E2EE requests Venice injects nothing: no Venice system prompt, character, web
 | Status | When |
 |---|---|
 | `400` | Invalid body (validation issues in `details`), capability rejections, invalid image/video, too many parts, context length exceeded, token cap exceeded, bad E2EE headers |
-| `401` | Missing / invalid auth |
-| `402` | Insufficient balance or API-key spend limit. x402: `code: "PAYMENT_REQUIRED"` body with `topUpInstructions` + `siwxChallenge`, and a `PAYMENT-REQUIRED` header ([`venice-x402`](../venice-x402/SKILL.md)) |
+| `401` | Invalid API key or SIWX sign-in; also a model that requires a paid subscription |
+| `402` | No credentials at all (x402 discovery body — not `401`), insufficient balance, or API-key spend limit. x402 insufficient balance: `code: "PAYMENT_REQUIRED"` body with `topUpInstructions` + `siwxChallenge`, and a `PAYMENT-REQUIRED` header ([`venice-x402`](../venice-x402/SKILL.md)) |
 | `403` | Model not allowed by the API key's `modelPrivacy`, region-restricted model, or provider restriction |
 | `404` | Unknown model (often with a "Did you mean" hint) or `character_slug` |
 | `413` | Payload too large |

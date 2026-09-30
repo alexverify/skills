@@ -80,7 +80,7 @@ curl -X POST https://api.venice.ai/api/v1/crypto/rpc/base-mainnet \
 ```
 
 - An empty array or more than 100 items ⇒ `400`.
-- A single unsupported method in a batch ⇒ the **entire batch** fails with `400`, and the message lists every offending method.
+- A single unsupported method in a batch ⇒ the **entire batch** fails with `400`, and the message lists every offending method. (A WebSocket-only method fails the batch immediately with its own message naming just that method.)
 - Give every item a unique `id`: billing pairs response items to requests by `id`.
 
 ### Drop-in with `viem`
@@ -130,9 +130,11 @@ Before forwarding, Venice checks that the balance of your current consumption cu
 
 ### Response headers
 
+Set on every response relayed from the node (any status) and on idempotent replays; responses Venice generates itself (validation errors, `402`, `429`, upstream-fetch `500`) don't carry them.
+
 | Header | Meaning |
 |---|---|
-| `X-Venice-RPC-Credits` | Total credits charged (sum over the batch). |
+| `X-Venice-RPC-Credits` | Total credits charged (sum over the batch). On a replay it repeats the original call's credits, although the replay itself is not billed. |
 | `X-Venice-RPC-Cost-USD` | Dollar cost to 8 decimal places. |
 | `X-Request-ID` | 32-char correlation ID — include in support tickets. |
 | `Idempotent-Replayed` | `"true"` when served from the idempotency cache. |
@@ -172,7 +174,7 @@ Use this for state-mutating methods (`eth_sendRawTransaction`, `eth_sendUserOper
 
 ## Rate limits and concurrency
 
-- **100 requests per minute** per user.
+- **100 requests per minute** per user. Every request counts, including ones later rejected with `400` and idempotent replays.
 - Over the cap ⇒ `429` with `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` (Unix seconds). The breach also shows in `GET /api_keys/rate_limits/log` as `modelId: "endpoint:api/v1/crypto/rpc"`.
 - A batch counts as **one** request, so batching is the way to raise throughput.
 - Requests are **processed one at a time per user**. A concurrent request waits briefly (~0.5 s) and otherwise gets `429` `"Another request for this user is in flight"`. Retry with jitter, or batch instead of fanning out in parallel.
@@ -195,5 +197,5 @@ Use this for state-mutating methods (`eth_sendRawTransaction`, `eth_sendUserOper
 - **Multi-chain dashboards** — One API key covers every network. No per-chain keys to rotate.
 - **High-throughput indexing** — Batch up to 100 calls per request; each item is billed individually, but it's one request against the rate limit and the one-at-a-time rule.
 - **Wallet-based (x402) RPC** — Top up USDC on Base or Solana, then send `SIGN-IN-WITH-X`. A `402` means low credit and carries top-up instructions.
-- **Cost tracking** — Log `X-Venice-RPC-Credits` and `X-Venice-RPC-Cost-USD` per request; aggregate by method to see where credits go. Ledger entries use the SKU `crypto-rpc-<network>`.
+- **Cost tracking** — Log `X-Venice-RPC-Credits` and `X-Venice-RPC-Cost-USD` per request (skip responses with `Idempotent-Replayed: true`, which weren't billed); aggregate by method to see where credits go. Ledger entries use the SKU `crypto-rpc-<network>`.
 - **Safe transaction submission** — Always send an `Idempotency-Key` with `eth_sendRawTransaction` so client retries within 24 hours replay instead of rebroadcasting.

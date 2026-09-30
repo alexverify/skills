@@ -28,8 +28,8 @@ Query `GET /models?type=music` for the current list and each model's `model_spec
 
 | Kind | Examples |
 |---|---|
-| Instrumental / songs | `elevenlabs-music`, `elevenlabs-music-v2-5`, `ace-step-15`, `lyria-3-pro`, `sonilo-v1-1-music`, `stable-audio-25` |
-| Songs with lyrics | `minimax-music-v25`, `minimax-music-v26`, `minimax-music-v2` (lyrics required) |
+| Instrumental / songs | `elevenlabs-music`, `elevenlabs-music-v2-5`, `lyria-3-pro`, `sonilo-v1-1-music`, `stable-audio-25` |
+| Songs with lyrics | `minimax-music-v25`, `minimax-music-v26`, `minimax-music-v2` (lyrics required), `ace-step-15` (lyrics optional) |
 | Sound effects | `elevenlabs-sound-effects-v2` (supports `loop`), `sonilo-v1-1-sound-effects`, `mmaudio-v2-text-to-audio` |
 | Voice (text in `prompt`) | `elevenlabs-tts-v4`, `elevenlabs-tts-v4-turbo`, `elevenlabs-tts-v3`, `elevenlabs-tts-multilingual-v2`, `seed-audio-1-0` |
 
@@ -91,10 +91,10 @@ The body is strict: every optional field below is **rejected with `400`** when t
 | `lyrics_optimizer` | Auto-writes lyrics from `prompt`. `supports_lyrics_optimizer=true` only; `lyrics_prompt` must then be empty. |
 | `loop` | Render a seamless loop (end splices into start). `supports_loop=true` only — currently `elevenlabs-sound-effects-v2`. |
 | `voice` | Voice-enabled models only. One of `voices`; defaults to `default_voice`. Models with `supports_custom_voice_id=true` (the ElevenLabs TTS models) also accept a raw ElevenLabs Voice ID. |
-| `language_code` | ISO 639-1. `supports_language_code=true` only. |
+| `language_code` | ISO 639-1. `supports_language_code=true` only — no model in the current list sets it. |
 | `speed` | `supports_speed=true` only, within `min_speed`–`max_speed`. |
 
-Model-specific rules also apply — e.g. `minimax-music-v25` needs a `lyrics_prompt` of at least 10 chars unless `force_instrumental` or `lyrics_optimizer` is `true`.
+Model-specific rules also apply: `minimax-music-v25` needs a `lyrics_prompt` of at least 10 chars unless `force_instrumental` or `lyrics_optimizer` is `true`; `minimax-music-v26` needs the same unless `force_instrumental` is `true`; `minimax-music-v2` needs a non-blank `lyrics_prompt`.
 
 ### 3. `POST /audio/retrieve` — poll / download
 
@@ -121,7 +121,7 @@ curl https://api.venice.ai/api/v1/audio/complete \
   -d '{"model":"elevenlabs-music","queue_id":"..."}'
 ```
 
-Returns `{"success": true}` once the stored media is deleted. Use it after you've saved the bytes, unless you retrieved with `delete_media_on_completion: true`.
+Returns `{"success": true}` once the stored media is deleted (`false` if the delete didn't go through). Use it after you've saved the bytes, unless you retrieved with `delete_media_on_completion: true`.
 
 ## Full loop (TypeScript)
 
@@ -195,7 +195,7 @@ Each `GET /models?type=music` entry's `model_spec` exposes:
 
 | Code | Meaning |
 |---|---|
-| `400` | Schema error (strict body), unsupported option for the model, bad `duration_seconds`, `lyrics_optimizer` + `lyrics_prompt`, voice-changer model on these endpoints, or an unknown / foreign `queue_id` on retrieve/complete (`"Request ID is invalid."`). Voice errors include `details.supported_voices`. |
+| `400` | Schema error (strict body), unsupported option for the model, bad `duration_seconds`, `lyrics_optimizer` + `lyrics_prompt`, voice-changer model on these endpoints, a provider-side validation failure reported on retrieve (refunded), or an unknown / foreign `queue_id` on retrieve/complete (`"Request ID is invalid."`). Voice errors include `details.supported_voices`. |
 | `401` | Authentication failed. |
 | `402` | Insufficient balance. Bearer → `INSUFFICIENT_BALANCE`; x402 → `PAYMENT_REQUIRED`. |
 | `403` | Key's privacy setting excludes the model, or region restriction. |

@@ -46,7 +46,7 @@ MATRIX_PATH = SKILL_DIR / "routing-matrix.md"
 
 # Cost-tier bucket boundaries, in USD per 1M input tokens.
 # Output-token cost is roughly 2-3x input cost across the catalog, so input is
-# the cleaner sort key. Boundaries are inclusive of the upper bound.
+# the cleaner sort key. Each bucket excludes its upper bound.
 TIERS: list[tuple[str, float]] = [
     ("XS", 0.20),
     ("S", 1.00),
@@ -248,14 +248,14 @@ def write_matrix(models: list[dict[str, Any]], traits: dict[str, str], snapshot_
         f"> Snapshot date: `{snapshot_date}` — sourced from `GET /api/v1/models?type=text` + `GET /api/v1/models/traits?type=text`.\n>\n"
         "> Authoritative machine-readable form: [`snapshots/text-routing.json`](snapshots/text-routing.json).\n\n"
         "## Cost tiers\n\n"
-        "| Tier | Rough $/1M in | Rough $/1M out |\n"
-        "|---|---|---|\n"
-        "| XS | < $0.20 | < $0.40 |\n"
-        "| S | $0.20 – $1 | $0.40 – $2 |\n"
-        "| M | $1 – $4 | $2 – $10 |\n"
-        "| L | $4 – $10 | $10 – $30 |\n"
-        "| Frontier | ≥ $10 | ≥ $30 |\n\n"
-        "Buckets mirror the size labels on [docs.venice.ai/models/text](https://docs.venice.ai/models/text).\n\n"
+        "| Tier | $/1M input tokens |\n"
+        "|---|---|\n"
+        "| XS | < $0.20 |\n"
+        "| S | $0.20 – < $1 |\n"
+        "| M | $1 – < $4 |\n"
+        "| L | $4 – < $10 |\n"
+        "| Frontier | ≥ $10 |\n\n"
+        "Buckets are this skill's own convention, keyed on input price only; output prices vary widely within a bucket.\n\n"
         "## Trait shortcuts\n\n"
         "| Trait | Resolves to |\n|---|---|\n"
         f"{trait_rows}\n\n"
@@ -270,7 +270,7 @@ def write_matrix(models: list[dict[str, Any]], traits: dict[str, str], snapshot_
         "\n## Sanity filters applied at routing time\n\n"
         "- Drop models with `model_spec.beta === true` unless your key has beta access.\n"
         "- Drop models with `model_spec.offline === true`.\n"
-        "- Drop models whose `model_spec.regionRestrictions` exclude the caller.\n"
+        "- Drop models whose `model_spec.regionRestrictions` list the caller's country.\n"
     )
     MATRIX_PATH.write_text(body, encoding="utf-8")
 

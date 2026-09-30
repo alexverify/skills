@@ -27,10 +27,10 @@ All three live endpoints require Bearer auth with an **ADMIN** key — an `INFER
 
 ## Currency / priority
 
-For each request Venice debits the first currency with spendable balance, in order:
+Each request is charged to a single currency: the first one, in this order, whose balance covers the request's cost:
 
-1. **`DIEM`** — from staked VVV; allocation resets every epoch (UTC day).
-2. **`BUNDLED_CREDITS`** — USD-denominated plan credits included with some Pro plans.
+1. **`DIEM`** — from staked DIEM; the allocation resets every epoch (UTC day).
+2. **`BUNDLED_CREDITS`** — USD-denominated credits included with paid Venice subscription plans.
 3. **`USD`** — prepaid fiat balance.
 
 Legacy `VCU` (the old name for DIEM) is no longer a consumable currency; it is rejected by `/billing/usage-history`'s `currency` filter.
@@ -53,9 +53,9 @@ curl https://api.venice.ai/api/v1/billing/balance \
 }
 ```
 
-- `canConsume` is `hasPositiveDiemBalance || usdBalance > 0`. It does **not** factor in bundled credits, per-key limits, or the account's API tier — the real admission check runs on each inference request. Use `GET /api_keys/rate_limits` → `accessPermitted` for a check that includes those.
+- `canConsume` is `true` when DIEM remains this epoch or the USD balance is positive. It does **not** factor in bundled credits, per-key limits, or the account's API tier — the real admission check runs on each inference request. Use `GET /api_keys/rate_limits` → `accessPermitted` for a check that includes those.
 - `consumptionCurrency` is `"DIEM"`, `"USD"`, or `null` here. The spec enum also lists `VCU` / `BUNDLED_CREDITS`, but this endpoint never returns them.
-- `balances.diem` is `null` when the epoch DIEM allocation is below 0.1 (i.e. effectively not staking); otherwise the remaining DIEM this epoch.
+- `balances.diem` is `null` when the account has less than 0.1 staked DIEM (the minimum before DIEM is spendable); otherwise the remaining DIEM this epoch.
 - `balances.usd` is `null` when the USD balance is not positive.
 - `diemEpochAllocation` is the total DIEM for the current epoch — `balances.diem / diemEpochAllocation` = remaining fraction.
 
@@ -200,9 +200,11 @@ curl "https://api.venice.ai/api/v1/billing/usage-analytics?lookback=7d" \
 
 ### Abort before calling inference if the account is empty
 
+`/billing/balance`'s `canConsume` ignores bundled credits and per-key limits, so gate on `accessPermitted` from `GET /api_keys/rate_limits` instead (works with the key you are about to use, including `INFERENCE` keys):
+
 ```ts
-const { canConsume } = await fetch(`${base}/billing/balance`, { headers }).then(r => r.json())
-if (!canConsume) throw new Error('Venice balance exhausted — top up before continuing')
+const { data } = await fetch(`${base}/api_keys/rate_limits`, { headers }).then(r => r.json())
+if (!data.accessPermitted) throw new Error('Venice balance exhausted — top up before continuing')
 ```
 
 ### Monthly CSV export
@@ -243,6 +245,7 @@ const a = await fetch(`${base}/billing/usage-analytics?lookback=30d`, { headers 
 - `/billing/usage-history` takes `startTimestamp` / `endTimestamp` (full ISO datetimes with `Z`) and `pageSize`; `/billing/usage-analytics` takes `lookback` or `startDate` / `endDate` as plain `YYYY-MM-DD` dates. Don't mix the formats.
 - `VCU` is not accepted by `/billing/usage-history`'s `currency` filter; use `DIEM`.
 - `inferenceDetails` is `null` for non-inference entries (e.g. subscription charges).
+- One inference request can appear as several ledger rows (e.g. separate input and output token SKUs) that repeat the same `inferenceDetails`. Sum `amount` across rows, but dedupe by `requestId` before summing token counts.
 - The analytics endpoint is **cached 10 min** — sudden spikes lag in the dashboard by that window.
 - `byModelDaily.date` is a **Unix milliseconds integer**; `byDate.date` is a **`YYYY-MM-DD` string**.
 - Usage from the Venice web app has `apiKeyId: null` — don't drop it when reconciling.
