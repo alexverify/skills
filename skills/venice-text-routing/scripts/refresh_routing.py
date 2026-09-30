@@ -12,8 +12,8 @@ skill folder:
     tier (XS / S / M / L / Frontier) plus TEE/E2EE buckets.
 
 Usage:
-    export VENICE_API_KEY=sk-...
-    python scripts/refresh_routing.py
+    python scripts/refresh_routing.py                  # no key needed
+    VENICE_API_KEY=sk-... python scripts/refresh_routing.py   # optional; tailors to the key
     python scripts/refresh_routing.py --base-url https://api.venice.ai
     python scripts/refresh_routing.py --dry-run        # don't write files
 
@@ -74,15 +74,16 @@ CAPABILITY_COLUMNS: list[tuple[str, str]] = [
 ]
 
 
-def fetch_json(url: str, api_key: str) -> dict[str, Any]:
-    req = urllib.request.Request(
-        url,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Accept": "application/json",
-            "User-Agent": "venice-text-routing-refresh/0.1",
-        },
-    )
+def fetch_json(url: str, api_key: str | None) -> dict[str, Any]:
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "venice-text-routing-refresh/0.1",
+    }
+    # Both endpoints are public. A key only tailors the result (e.g. a
+    # modelPrivacy-restricted key filters the catalog), so it is optional.
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
@@ -97,15 +98,15 @@ def tier_for_input_price(usd_per_1m: float | None) -> str:
     return "Frontier"
 
 
-def privacy_label(model_id: str, raw_privacy: str | None) -> str:
+def privacy_label(capabilities: dict[str, Any], raw_privacy: str | None) -> str:
     """Resolve the routing privacy label.
 
-    Order matters: TEE/E2EE prefixes win over the raw ``privacy`` field
-    because the prefix is the contractual selector for the encrypted path.
+    ``model_spec.privacy`` is only ever ``private`` or ``anonymized``; the
+    TEE/E2EE tiers come from the capability flags, which win over it.
     """
-    if model_id.startswith("e2ee-"):
+    if capabilities.get("supportsE2EE"):
         return "e2ee"
-    if model_id.startswith("tee-"):
+    if capabilities.get("supportsTeeAttestation"):
         return "tee"
     return raw_privacy or "unknown"
 
@@ -125,7 +126,7 @@ def normalize_model(entry: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": model_id,
         "tier": tier_for_input_price(input_usd),
-        "privacy": privacy_label(model_id, spec.get("privacy")),
+        "privacy": privacy_label(capabilities, spec.get("privacy")),
         "capabilities": {
             key: bool(capabilities.get(key))
             for _, key in CAPABILITY_COLUMNS
@@ -280,10 +281,6 @@ def main() -> int:
     parser.add_argument("--api-key", default=os.environ.get("VENICE_API_KEY"))
     parser.add_argument("--dry-run", action="store_true", help="Fetch + normalize but don't write files.")
     args = parser.parse_args()
-
-    if not args.api_key:
-        print("ERROR: set VENICE_API_KEY or pass --api-key", file=sys.stderr)
-        return 1
 
     base = args.base_url.rstrip("/")
     models_url = f"{base}/api/v1/models?type=text"

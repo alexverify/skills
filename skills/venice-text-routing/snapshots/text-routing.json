@@ -1,5 +1,5 @@
 {
-  "snapshot_date": "2026-05-07T20:04:14Z",
+  "snapshot_date": "2026-09-30T21:59:33Z",
   "source": {
     "models": "GET https://api.venice.ai/api/v1/models?type=text",
     "traits": "GET https://api.venice.ai/api/v1/models/traits?type=text"
@@ -12,17 +12,17 @@
     "Frontier": null
   },
   "traits": {
-    "default": "zai-org-glm-4.7",
-    "most_intelligent": "zai-org-glm-4.7",
-    "function_calling_default": "zai-org-glm-4.7",
+    "default": "zai-org-glm-5-2",
+    "function_calling_default": "zai-org-glm-5-2",
     "most_uncensored": "venice-uncensored-1-2",
-    "default_reasoning": "qwen3-235b-a22b-thinking-2507",
-    "default_vision": "qwen3-vl-235b-a22b",
-    "default_code": "qwen3-coder-480b-a35b-instruct-turbo"
+    "default_vision": "qwen-3-8-27b",
+    "most_intelligent": "grok-4-7",
+    "default_reasoning": "kimi-k3",
+    "default_code": "deepseek-v4-pro-0813"
   },
   "models": [
     {
-      "id": "claude-opus-4-6-fast",
+      "id": "claude-fable-5",
       "tier": "Frontier",
       "privacy": "anonymized",
       "capabilities": {
@@ -44,10 +44,103 @@
       "available_context_tokens": 1000000,
       "max_completion_tokens": 128000,
       "pricing_per_1m": {
-        "input_usd": 36,
-        "output_usd": 180
+        "input_usd": 12,
+        "output_usd": 60
       },
-      "beta": true,
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "claude-fable-5-1",
+      "tier": "Frontier",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 12,
+        "output_usd": 60
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "claude-opus-4-8-fast",
+      "tier": "Frontier",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 12,
+        "output_usd": 60
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "claude-opus-5-fast",
+      "tier": "Frontier",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 12,
+        "output_usd": 60
+      },
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -78,7 +171,7 @@
         "input_usd": 37.5,
         "output_usd": 225
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -109,7 +202,69 @@
         "input_usd": 37.5,
         "output_usd": 225
       },
-      "beta": true,
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "openai-gpt-6-astra",
+      "tier": "Frontier",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1050000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 10,
+        "output_usd": 50
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "openai-gpt-6-astra-pro",
+      "tier": "Frontier",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1050000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 12.5,
+        "output_usd": 62.5
+      },
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -124,7 +279,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": true,
+        "supportsReasoningEffort": false,
         "supportsFunctionCalling": true,
         "optimizedForCode": true,
         "supportsWebSearch": true,
@@ -171,7 +326,7 @@
         "input_usd": 6,
         "output_usd": 30
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -208,6 +363,161 @@
       "deprecation_date": null
     },
     {
+      "id": "claude-opus-4-8",
+      "tier": "L",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 6,
+        "output_usd": 30
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "claude-opus-5",
+      "tier": "L",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 6,
+        "output_usd": 30
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "claude-opus-5-5",
+      "tier": "L",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 4.8,
+        "output_usd": 24
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "claude-opus-5-5-fast",
+      "tier": "L",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 9.6,
+        "output_usd": 48
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "kimi-k3-fast-api",
+      "tier": "L",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 131072,
+      "pricing_per_1m": {
+        "input_usd": 4.5,
+        "output_usd": 22.5
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
       "id": "openai-gpt-55",
       "tier": "L",
       "privacy": "anonymized",
@@ -233,13 +543,75 @@
         "input_usd": 6.25,
         "output_usd": 37.5
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
     },
     {
-      "id": "aion-labs-aion-2-0",
+      "id": "openai-gpt-56-sol",
+      "tier": "L",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 5,
+        "output_usd": 25
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "openai-gpt-56-sol-pro",
+      "tier": "L",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 5,
+        "output_usd": 25
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "aion-labs-aion-3-0",
       "tier": "M",
       "privacy": "anonymized",
       "capabilities": {
@@ -248,12 +620,12 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": true,
-        "supportsFunctionCalling": false,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
         "supportsXSearch": false,
-        "supportsResponseSchema": false,
+        "supportsResponseSchema": true,
         "supportsTeeAttestation": false,
         "supportsE2EE": false
       },
@@ -261,8 +633,39 @@
       "available_context_tokens": 128000,
       "max_completion_tokens": 32768,
       "pricing_per_1m": {
-        "input_usd": 1,
-        "output_usd": 2
+        "input_usd": 3.75,
+        "output_usd": 7.5
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "aion-labs-aion-3-5",
+      "tier": "M",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": false,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 262144,
+      "max_completion_tokens": 32768,
+      "pricing_per_1m": {
+        "input_usd": 3.75,
+        "output_usd": 7.5
       },
       "beta": false,
       "offline": false,
@@ -279,7 +682,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": true,
+        "supportsReasoningEffort": false,
         "supportsFunctionCalling": true,
         "optimizedForCode": true,
         "supportsWebSearch": true,
@@ -326,7 +729,69 @@
         "input_usd": 3.6,
         "output_usd": 18
       },
-      "beta": true,
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "claude-sonnet-5",
+      "tier": "M",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 64000,
+      "pricing_per_1m": {
+        "input_usd": 3,
+        "output_usd": 15
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "claude-sonnet-5-5",
+      "tier": "M",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 3.75,
+        "output_usd": 18.75
+      },
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -334,7 +799,7 @@
     {
       "id": "deepseek-v4-pro",
       "tier": "M",
-      "privacy": "anonymized",
+      "privacy": "private",
       "capabilities": {
         "supportsVision": false,
         "supportsMultipleImages": false,
@@ -354,8 +819,8 @@
       "available_context_tokens": 1000000,
       "max_completion_tokens": 32768,
       "pricing_per_1m": {
-        "input_usd": 1.73,
-        "output_usd": 3.796
+        "input_usd": 1.65,
+        "output_usd": 3.301
       },
       "beta": false,
       "offline": false,
@@ -363,7 +828,38 @@
       "deprecation_date": null
     },
     {
-      "id": "e2ee-glm-4-7-p",
+      "id": "deepseek-v4-pro-0813",
+      "tier": "M",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": false,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 32768,
+      "pricing_per_1m": {
+        "input_usd": 1.65,
+        "output_usd": 4.95
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "e2ee-glm-5-2-p",
       "tier": "M",
       "privacy": "e2ee",
       "capabilities": {
@@ -372,8 +868,8 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
-        "supportsFunctionCalling": false,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
         "optimizedForCode": true,
         "supportsWebSearch": true,
         "supportsXSearch": false,
@@ -382,19 +878,19 @@
         "supportsE2EE": true
       },
       "max_images": null,
-      "available_context_tokens": 128000,
+      "available_context_tokens": 524288,
       "max_completion_tokens": 32768,
       "pricing_per_1m": {
-        "input_usd": 1.1,
-        "output_usd": 4.15
+        "input_usd": 1.75,
+        "output_usd": 5.75
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
     },
     {
-      "id": "e2ee-glm-5-1",
+      "id": "e2ee-glm-5-3-p",
       "tier": "M",
       "privacy": "e2ee",
       "capabilities": {
@@ -403,9 +899,9 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
-        "supportsFunctionCalling": false,
-        "optimizedForCode": false,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
         "supportsWebSearch": true,
         "supportsXSearch": false,
         "supportsResponseSchema": false,
@@ -413,13 +909,44 @@
         "supportsE2EE": true
       },
       "max_images": null,
-      "available_context_tokens": 200000,
+      "available_context_tokens": 1000000,
       "max_completion_tokens": 32768,
       "pricing_per_1m": {
-        "input_usd": 1.1,
-        "output_usd": 4.15
+        "input_usd": 1.75,
+        "output_usd": 5.5
       },
-      "beta": true,
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "e2ee-kimi-k3-p",
+      "tier": "M",
+      "privacy": "e2ee",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": true,
+        "supportsE2EE": true
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 131072,
+      "pricing_per_1m": {
+        "input_usd": 3.75,
+        "output_usd": 18.75
+      },
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -449,6 +976,37 @@
       "pricing_per_1m": {
         "input_usd": 2.5,
         "output_usd": 15
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "gemini-3-5-flash",
+      "tier": "M",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": true,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 20,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 1.55,
+        "output_usd": 9.45
       },
       "beta": false,
       "offline": false,
@@ -527,7 +1085,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -542,6 +1100,130 @@
       "pricing_per_1m": {
         "input_usd": 1.42,
         "output_usd": 2.83
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "grok-4-5",
+      "tier": "M",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": true,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 500000,
+      "max_completion_tokens": 32000,
+      "pricing_per_1m": {
+        "input_usd": 2.27,
+        "output_usd": 6.8
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "grok-4-6",
+      "tier": "M",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": true,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 500000,
+      "max_completion_tokens": 200000,
+      "pricing_per_1m": {
+        "input_usd": 2.27,
+        "output_usd": 6.8
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "grok-4-7",
+      "tier": "M",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": true,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 500000,
+      "max_completion_tokens": 200000,
+      "pricing_per_1m": {
+        "input_usd": 2.27,
+        "output_usd": 6.8
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "grok-build-0-1",
+      "tier": "M",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 256000,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 1,
+        "output_usd": 2
       },
       "beta": false,
       "offline": false,
@@ -573,6 +1255,68 @@
       "pricing_per_1m": {
         "input_usd": 1.1,
         "output_usd": 3
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "inkling",
+      "tier": "M",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": true,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 524288,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 1.25,
+        "output_usd": 5.0625
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "kimi-k3",
+      "tier": "M",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 131072,
+      "pricing_per_1m": {
+        "input_usd": 3.75,
+        "output_usd": 18.75
       },
       "beta": false,
       "offline": false,
@@ -642,37 +1386,6 @@
       "deprecation_date": null
     },
     {
-      "id": "openai-gpt-52-codex",
-      "tier": "M",
-      "privacy": "anonymized",
-      "capabilities": {
-        "supportsVision": true,
-        "supportsMultipleImages": true,
-        "supportsAudioInput": false,
-        "supportsVideoInput": false,
-        "supportsReasoning": true,
-        "supportsReasoningEffort": true,
-        "supportsFunctionCalling": true,
-        "optimizedForCode": true,
-        "supportsWebSearch": true,
-        "supportsXSearch": false,
-        "supportsResponseSchema": true,
-        "supportsTeeAttestation": false,
-        "supportsE2EE": false
-      },
-      "max_images": 10,
-      "available_context_tokens": 256000,
-      "max_completion_tokens": 65536,
-      "pricing_per_1m": {
-        "input_usd": 2.19,
-        "output_usd": 17.5
-      },
-      "beta": false,
-      "offline": false,
-      "region_restrictions": [],
-      "deprecation_date": null
-    },
-    {
       "id": "openai-gpt-53-codex",
       "tier": "M",
       "privacy": "anonymized",
@@ -698,7 +1411,7 @@
         "input_usd": 2.19,
         "output_usd": 17.5
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -729,15 +1442,232 @@
         "input_usd": 3.13,
         "output_usd": 18.8
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
     },
     {
-      "id": "qwen-3-6-max-preview",
+      "id": "openai-gpt-56-terra",
       "tier": "M",
       "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 2.5,
+        "output_usd": 15
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "openai-gpt-56-terra-pro",
+      "tier": "M",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 2.5,
+        "output_usd": 15
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "openai-gpt-6-sol",
+      "tier": "M",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1050000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 2.5,
+        "output_usd": 12.5
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "openai-gpt-61-sol",
+      "tier": "M",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1050000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 2.5,
+        "output_usd": 12.5
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "qwen-3-7-max",
+      "tier": "M",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": false,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 2.7,
+        "output_usd": 8.05
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "qwen-3-8-2-4t-a95b",
+      "tier": "M",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": false,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": false,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 262144,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 2.5,
+        "output_usd": 7.5
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "qwen-3-8-max",
+      "tier": "M",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": false,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 131072,
+      "pricing_per_1m": {
+        "input_usd": 2.5,
+        "output_usd": 7.5
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "z-ai-glm-5-3",
+      "tier": "M",
+      "privacy": "private",
       "capabilities": {
         "supportsVision": false,
         "supportsMultipleImages": false,
@@ -754,13 +1684,13 @@
         "supportsE2EE": false
       },
       "max_images": null,
-      "available_context_tokens": 256000,
-      "max_completion_tokens": 65536,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 131072,
       "pricing_per_1m": {
-        "input_usd": 1.625,
-        "output_usd": 9.75
+        "input_usd": 1.75,
+        "output_usd": 5.5
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -822,7 +1752,7 @@
         "input_usd": 1.5,
         "output_usd": 5
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -837,7 +1767,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": true,
         "supportsWebSearch": true,
@@ -868,7 +1798,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -879,19 +1809,19 @@
       },
       "max_images": null,
       "available_context_tokens": 200000,
-      "max_completion_tokens": 24000,
+      "max_completion_tokens": 80000,
       "pricing_per_1m": {
-        "input_usd": 1.75,
-        "output_usd": 5.5
+        "input_usd": 1.54,
+        "output_usd": 4.84
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
     },
     {
-      "id": "arcee-trinity-large-thinking",
-      "tier": "S",
+      "id": "zai-org-glm-5-2",
+      "tier": "M",
       "privacy": "private",
       "capabilities": {
         "supportsVision": false,
@@ -909,11 +1839,73 @@
         "supportsE2EE": false
       },
       "max_images": null,
-      "available_context_tokens": 256000,
-      "max_completion_tokens": 65536,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 131072,
       "pricing_per_1m": {
-        "input_usd": 0.3125,
-        "output_usd": 1.125
+        "input_usd": 1.4,
+        "output_usd": 4.4
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "aion-labs-aion-3-0-mini",
+      "tier": "S",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": false,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 128000,
+      "max_completion_tokens": 32768,
+      "pricing_per_1m": {
+        "input_usd": 0.875,
+        "output_usd": 1.75
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "aion-labs-aion-3-5-mini",
+      "tier": "S",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": false,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 262144,
+      "max_completion_tokens": 32768,
+      "pricing_per_1m": {
+        "input_usd": 0.875,
+        "output_usd": 1.75
       },
       "beta": false,
       "offline": false,
@@ -930,7 +1922,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -952,32 +1944,125 @@
       "deprecation_date": null
     },
     {
-      "id": "e2ee-qwen3-5-122b-a10b",
+      "id": "deepseek-v4-1-flash",
       "tier": "S",
-      "privacy": "e2ee",
+      "privacy": "private",
       "capabilities": {
         "supportsVision": true,
         "supportsMultipleImages": true,
         "supportsAudioInput": false,
-        "supportsVideoInput": true,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 131072,
+      "pricing_per_1m": {
+        "input_usd": 0.375,
+        "output_usd": 1.5
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "deepseek-v4-flash-0731-fast",
+      "tier": "S",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": false,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 32768,
+      "pricing_per_1m": {
+        "input_usd": 0.35,
+        "output_usd": 0.7
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "e2ee-kimi-k2-6",
+      "tier": "S",
+      "privacy": "e2ee",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
         "supportsReasoning": true,
         "supportsReasoningEffort": false,
         "supportsFunctionCalling": true,
-        "optimizedForCode": false,
+        "optimizedForCode": true,
         "supportsWebSearch": true,
         "supportsXSearch": false,
         "supportsResponseSchema": false,
         "supportsTeeAttestation": true,
         "supportsE2EE": true
       },
-      "max_images": 10,
-      "available_context_tokens": 128000,
-      "max_completion_tokens": 32768,
+      "max_images": null,
+      "available_context_tokens": 262144,
+      "max_completion_tokens": 8192,
       "pricing_per_1m": {
-        "input_usd": 0.5,
-        "output_usd": 4
+        "input_usd": 0.87,
+        "output_usd": 4.12
       },
-      "beta": true,
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "e2ee-qwen3-8-27b",
+      "tier": "S",
+      "privacy": "e2ee",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": false,
+        "supportsTeeAttestation": true,
+        "supportsE2EE": true
+      },
+      "max_images": null,
+      "available_context_tokens": 262144,
+      "max_completion_tokens": 8192,
+      "pricing_per_1m": {
+        "input_usd": 0.47,
+        "output_usd": 3.53
+      },
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -1008,38 +2093,131 @@
         "input_usd": 0.25,
         "output_usd": 0.9
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
     },
     {
-      "id": "e2ee-venice-uncensored-24b-p",
+      "id": "gemini-3-5-flash-lite",
       "tier": "S",
-      "privacy": "e2ee",
+      "privacy": "anonymized",
       "capabilities": {
-        "supportsVision": false,
+        "supportsVision": true,
         "supportsMultipleImages": false,
-        "supportsAudioInput": false,
-        "supportsVideoInput": false,
-        "supportsReasoning": false,
+        "supportsAudioInput": true,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
         "supportsReasoningEffort": false,
-        "supportsFunctionCalling": false,
+        "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
         "supportsXSearch": false,
-        "supportsResponseSchema": false,
-        "supportsTeeAttestation": true,
-        "supportsE2EE": true
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
       },
       "max_images": null,
-      "available_context_tokens": 32000,
-      "max_completion_tokens": 4096,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 65536,
       "pricing_per_1m": {
-        "input_usd": 0.25,
-        "output_usd": 1.15
+        "input_usd": 0.375,
+        "output_usd": 3.125
       },
-      "beta": true,
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "gemini-3-6-flash",
+      "tier": "S",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": true,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 0.9375,
+        "output_usd": 4.6875
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "gemini-3-7-flash",
+      "tier": "S",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": true,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 0.9375,
+        "output_usd": 4.6875
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "gemini-3-8-flash",
+      "tier": "S",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": true,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 0.9375,
+        "output_usd": 4.6875
+      },
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -1076,37 +2254,6 @@
       "deprecation_date": null
     },
     {
-      "id": "grok-41-fast",
-      "tier": "S",
-      "privacy": "private",
-      "capabilities": {
-        "supportsVision": true,
-        "supportsMultipleImages": true,
-        "supportsAudioInput": false,
-        "supportsVideoInput": false,
-        "supportsReasoning": true,
-        "supportsReasoningEffort": false,
-        "supportsFunctionCalling": true,
-        "optimizedForCode": false,
-        "supportsWebSearch": true,
-        "supportsXSearch": false,
-        "supportsResponseSchema": true,
-        "supportsTeeAttestation": false,
-        "supportsE2EE": false
-      },
-      "max_images": 10,
-      "available_context_tokens": 1000000,
-      "max_completion_tokens": 30000,
-      "pricing_per_1m": {
-        "input_usd": 0.23,
-        "output_usd": 0.57
-      },
-      "beta": false,
-      "offline": false,
-      "region_restrictions": [],
-      "deprecation_date": "2026-05-15T00:00:00.000Z"
-    },
-    {
       "id": "kimi-k2-5",
       "tier": "S",
       "privacy": "private",
@@ -1116,7 +2263,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": true,
+        "supportsReasoningEffort": false,
         "supportsFunctionCalling": true,
         "optimizedForCode": true,
         "supportsWebSearch": true,
@@ -1160,8 +2307,39 @@
       "available_context_tokens": 256000,
       "max_completion_tokens": 65536,
       "pricing_per_1m": {
-        "input_usd": 0.85,
-        "output_usd": 4.655
+        "input_usd": 0.75,
+        "output_usd": 3.5
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "kimi-k2-7-code",
+      "tier": "S",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 256000,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 0.75,
+        "output_usd": 3.5
       },
       "beta": false,
       "offline": false,
@@ -1225,7 +2403,7 @@
         "input_usd": 0.3125,
         "output_usd": 0.9375
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -1253,8 +2431,8 @@
       "available_context_tokens": 198000,
       "max_completion_tokens": 32768,
       "pricing_per_1m": {
-        "input_usd": 0.34,
-        "output_usd": 1.19
+        "input_usd": 0.27,
+        "output_usd": 0.95
       },
       "beta": false,
       "offline": false,
@@ -1264,7 +2442,7 @@
     {
       "id": "minimax-m27",
       "tier": "S",
-      "privacy": "anonymized",
+      "privacy": "private",
       "capabilities": {
         "supportsVision": false,
         "supportsMultipleImages": false,
@@ -1286,6 +2464,68 @@
       "pricing_per_1m": {
         "input_usd": 0.375,
         "output_usd": 1.5
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "minimax-m3-preview",
+      "tier": "S",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": false,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 524288,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 0.3,
+        "output_usd": 1.2
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "nvidia-nemotron-3-ultra-550b-a55b",
+      "tier": "S",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": false,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 256000,
+      "max_completion_tokens": 32768,
+      "pricing_per_1m": {
+        "input_usd": 0.625,
+        "output_usd": 3.125
       },
       "beta": false,
       "offline": false,
@@ -1318,7 +2558,69 @@
         "input_usd": 0.9375,
         "output_usd": 5.625
       },
-      "beta": true,
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "openai-gpt-56-luna",
+      "tier": "S",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 0.25,
+        "output_usd": 1.5
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "openai-gpt-56-luna-pro",
+      "tier": "S",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 0.25,
+        "output_usd": 1.5
+      },
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -1349,6 +2651,68 @@
         "input_usd": 0.625,
         "output_usd": 3.75
       },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "qwen-3-7-plus",
+      "tier": "S",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 0.5,
+        "output_usd": 2
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "qwen-3-8-27b",
+      "tier": "S",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 262144,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 0.45,
+        "output_usd": 3.2
+      },
       "beta": true,
       "offline": false,
       "region_restrictions": [],
@@ -1364,7 +2728,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -1395,7 +2759,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": true,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": true,
         "supportsWebSearch": true,
@@ -1406,12 +2770,12 @@
       },
       "max_images": 10,
       "available_context_tokens": 256000,
-      "max_completion_tokens": 65536,
+      "max_completion_tokens": 16384,
       "pricing_per_1m": {
         "input_usd": 0.3125,
         "output_usd": 1.25
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -1457,7 +2821,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": true,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": true,
         "supportsWebSearch": true,
@@ -1504,7 +2868,7 @@
         "input_usd": 0.35,
         "output_usd": 1.5
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -1560,11 +2924,42 @@
         "supportsE2EE": false
       },
       "max_images": 10,
-      "available_context_tokens": 256000,
+      "available_context_tokens": 128000,
       "max_completion_tokens": 16384,
       "pricing_per_1m": {
-        "input_usd": 0.25,
-        "output_usd": 1.5
+        "input_usd": 0.21,
+        "output_usd": 1.9
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "seed-2-1-turbo",
+      "tier": "S",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 256000,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 0.625,
+        "output_usd": 3.125
       },
       "beta": false,
       "offline": false,
@@ -1634,32 +3029,32 @@
       "deprecation_date": null
     },
     {
-      "id": "xiaomi-mimo-v2-omni",
+      "id": "xiaomi-mimo-v2-5",
       "tier": "S",
-      "privacy": "anonymized",
+      "privacy": "private",
       "capabilities": {
         "supportsVision": true,
         "supportsMultipleImages": true,
         "supportsAudioInput": true,
         "supportsVideoInput": true,
-        "supportsReasoning": false,
-        "supportsReasoningEffort": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
-        "optimizedForCode": false,
+        "optimizedForCode": true,
         "supportsWebSearch": true,
         "supportsXSearch": false,
-        "supportsResponseSchema": false,
+        "supportsResponseSchema": true,
         "supportsTeeAttestation": false,
         "supportsE2EE": false
       },
       "max_images": 10,
-      "available_context_tokens": 256000,
+      "available_context_tokens": 1000000,
       "max_completion_tokens": 65536,
       "pricing_per_1m": {
-        "input_usd": 0.5,
-        "output_usd": 2.5
+        "input_usd": 0.4,
+        "output_usd": 2
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -1674,7 +3069,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -1687,8 +3082,8 @@
       "available_context_tokens": 198000,
       "max_completion_tokens": 16384,
       "pricing_per_1m": {
-        "input_usd": 0.85,
-        "output_usd": 2.75
+        "input_usd": 0.43,
+        "output_usd": 1.75
       },
       "beta": false,
       "offline": false,
@@ -1705,7 +3100,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -1729,7 +3124,7 @@
     {
       "id": "deepseek-v4-flash",
       "tier": "XS",
-      "privacy": "anonymized",
+      "privacy": "private",
       "capabilities": {
         "supportsVision": false,
         "supportsMultipleImages": false,
@@ -1749,7 +3144,38 @@
       "available_context_tokens": 1000000,
       "max_completion_tokens": 32768,
       "pricing_per_1m": {
-        "input_usd": 0.17,
+        "input_usd": 0.138,
+        "output_usd": 0.275
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "deepseek-v4-flash-0731",
+      "tier": "XS",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": false,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 32768,
+      "pricing_per_1m": {
+        "input_usd": 0.175,
         "output_usd": 0.35
       },
       "beta": false,
@@ -1758,7 +3184,38 @@
       "deprecation_date": null
     },
     {
-      "id": "e2ee-gemma-3-27b-p",
+      "id": "e2ee-deepseek-v4-flash",
+      "tier": "XS",
+      "privacy": "e2ee",
+      "capabilities": {
+        "supportsVision": false,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": false,
+        "supportsTeeAttestation": true,
+        "supportsE2EE": true
+      },
+      "max_images": null,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 8192,
+      "pricing_per_1m": {
+        "input_usd": 0.182,
+        "output_usd": 0.373
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "e2ee-gemma-4-26b-a4b-uncensored-p",
       "tier": "XS",
       "privacy": "e2ee",
       "capabilities": {
@@ -1777,29 +3234,29 @@
         "supportsE2EE": true
       },
       "max_images": null,
-      "available_context_tokens": 40000,
+      "available_context_tokens": 64000,
       "max_completion_tokens": 4096,
       "pricing_per_1m": {
-        "input_usd": 0.14,
-        "output_usd": 0.5
+        "input_usd": 0.19,
+        "output_usd": 0.88
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
     },
     {
-      "id": "e2ee-glm-4-7-flash-p",
+      "id": "e2ee-glm-5-3-flash",
       "tier": "XS",
       "privacy": "e2ee",
       "capabilities": {
-        "supportsVision": false,
+        "supportsVision": true,
         "supportsMultipleImages": false,
         "supportsAudioInput": false,
         "supportsVideoInput": false,
-        "supportsReasoning": false,
+        "supportsReasoning": true,
         "supportsReasoningEffort": false,
-        "supportsFunctionCalling": false,
+        "supportsFunctionCalling": true,
         "optimizedForCode": true,
         "supportsWebSearch": true,
         "supportsXSearch": false,
@@ -1808,13 +3265,13 @@
         "supportsE2EE": true
       },
       "max_images": null,
-      "available_context_tokens": 198000,
-      "max_completion_tokens": 4096,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 32768,
       "pricing_per_1m": {
-        "input_usd": 0.13,
-        "output_usd": 0.55
+        "input_usd": 0.16,
+        "output_usd": 0.54
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -1829,7 +3286,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": false,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -1845,38 +3302,7 @@
         "input_usd": 0.13,
         "output_usd": 0.65
       },
-      "beta": true,
-      "offline": false,
-      "region_restrictions": [],
-      "deprecation_date": null
-    },
-    {
-      "id": "e2ee-gpt-oss-20b-p",
-      "tier": "XS",
-      "privacy": "e2ee",
-      "capabilities": {
-        "supportsVision": false,
-        "supportsMultipleImages": false,
-        "supportsAudioInput": false,
-        "supportsVideoInput": false,
-        "supportsReasoning": true,
-        "supportsReasoningEffort": false,
-        "supportsFunctionCalling": false,
-        "optimizedForCode": false,
-        "supportsWebSearch": true,
-        "supportsXSearch": false,
-        "supportsResponseSchema": false,
-        "supportsTeeAttestation": true,
-        "supportsE2EE": true
-      },
-      "max_images": null,
-      "available_context_tokens": 128000,
-      "max_completion_tokens": 32768,
-      "pricing_per_1m": {
-        "input_usd": 0.05,
-        "output_usd": 0.19
-      },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -1907,13 +3333,13 @@
         "input_usd": 0.05,
         "output_usd": 0.13
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
     },
     {
-      "id": "e2ee-qwen3-30b-a3b-p",
+      "id": "e2ee-qwen3-6-35b-a3b",
       "tier": "XS",
       "privacy": "e2ee",
       "capabilities": {
@@ -1921,10 +3347,10 @@
         "supportsMultipleImages": false,
         "supportsAudioInput": false,
         "supportsVideoInput": false,
-        "supportsReasoning": false,
+        "supportsReasoning": true,
         "supportsReasoningEffort": false,
         "supportsFunctionCalling": true,
-        "optimizedForCode": false,
+        "optimizedForCode": true,
         "supportsWebSearch": true,
         "supportsXSearch": false,
         "supportsResponseSchema": false,
@@ -1932,13 +3358,13 @@
         "supportsE2EE": true
       },
       "max_images": null,
-      "available_context_tokens": 256000,
-      "max_completion_tokens": 32768,
+      "available_context_tokens": 32000,
+      "max_completion_tokens": 4096,
       "pricing_per_1m": {
-        "input_usd": 0.19,
-        "output_usd": 0.69
+        "input_usd": 0.182,
+        "output_usd": 1.18
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -2015,7 +3441,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": true,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -2028,8 +3454,8 @@
       "available_context_tokens": 256000,
       "max_completion_tokens": 8192,
       "pricing_per_1m": {
-        "input_usd": 0.1625,
-        "output_usd": 0.5
+        "input_usd": 0.13,
+        "output_usd": 0.4
       },
       "beta": false,
       "offline": false,
@@ -2046,7 +3472,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": true,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -2059,8 +3485,8 @@
       "available_context_tokens": 256000,
       "max_completion_tokens": 8192,
       "pricing_per_1m": {
-        "input_usd": 0.175,
-        "output_usd": 0.5
+        "input_usd": 0.12,
+        "output_usd": 0.36
       },
       "beta": false,
       "offline": false,
@@ -2099,32 +3525,32 @@
       "deprecation_date": null
     },
     {
-      "id": "mistral-small-2603",
+      "id": "mercury-2-5",
       "tier": "XS",
-      "privacy": "private",
+      "privacy": "anonymized",
       "capabilities": {
-        "supportsVision": true,
-        "supportsMultipleImages": true,
+        "supportsVision": false,
+        "supportsMultipleImages": false,
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
         "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
-        "optimizedForCode": true,
+        "optimizedForCode": false,
         "supportsWebSearch": true,
         "supportsXSearch": false,
         "supportsResponseSchema": true,
         "supportsTeeAttestation": false,
         "supportsE2EE": false
       },
-      "max_images": 10,
-      "available_context_tokens": 256000,
+      "max_images": null,
+      "available_context_tokens": 260000,
       "max_completion_tokens": 65536,
       "pricing_per_1m": {
-        "input_usd": 0.1875,
-        "output_usd": 0.75
+        "input_usd": 0.04999999999999999,
+        "output_usd": 0.18749999999999994
       },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -2134,8 +3560,8 @@
       "tier": "XS",
       "privacy": "private",
       "capabilities": {
-        "supportsVision": false,
-        "supportsMultipleImages": false,
+        "supportsVision": true,
+        "supportsMultipleImages": true,
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": false,
@@ -2148,7 +3574,7 @@
         "supportsTeeAttestation": false,
         "supportsE2EE": false
       },
-      "max_images": null,
+      "max_images": 10,
       "available_context_tokens": 256000,
       "max_completion_tokens": 16384,
       "pricing_per_1m": {
@@ -2186,69 +3612,7 @@
         "input_usd": 0.075,
         "output_usd": 0.3
       },
-      "beta": true,
-      "offline": false,
-      "region_restrictions": [],
-      "deprecation_date": null
-    },
-    {
-      "id": "nvidia-nemotron-3-super-120b-a12b",
-      "tier": "XS",
-      "privacy": "private",
-      "capabilities": {
-        "supportsVision": false,
-        "supportsMultipleImages": false,
-        "supportsAudioInput": false,
-        "supportsVideoInput": false,
-        "supportsReasoning": true,
-        "supportsReasoningEffort": false,
-        "supportsFunctionCalling": true,
-        "optimizedForCode": false,
-        "supportsWebSearch": true,
-        "supportsXSearch": false,
-        "supportsResponseSchema": true,
-        "supportsTeeAttestation": false,
-        "supportsE2EE": false
-      },
-      "max_images": null,
-      "available_context_tokens": 256000,
-      "max_completion_tokens": 32768,
-      "pricing_per_1m": {
-        "input_usd": 0.125,
-        "output_usd": 0.625
-      },
-      "beta": true,
-      "offline": false,
-      "region_restrictions": [],
-      "deprecation_date": null
-    },
-    {
-      "id": "nvidia-nemotron-cascade-2-30b-a3b",
-      "tier": "XS",
-      "privacy": "private",
-      "capabilities": {
-        "supportsVision": false,
-        "supportsMultipleImages": false,
-        "supportsAudioInput": false,
-        "supportsVideoInput": false,
-        "supportsReasoning": true,
-        "supportsReasoningEffort": false,
-        "supportsFunctionCalling": true,
-        "optimizedForCode": false,
-        "supportsWebSearch": true,
-        "supportsXSearch": false,
-        "supportsResponseSchema": true,
-        "supportsTeeAttestation": false,
-        "supportsE2EE": false
-      },
-      "max_images": null,
-      "available_context_tokens": 256000,
-      "max_completion_tokens": 32768,
-      "pricing_per_1m": {
-        "input_usd": 0.14,
-        "output_usd": 0.8
-      },
-      "beta": true,
+      "beta": false,
       "offline": false,
       "region_restrictions": [],
       "deprecation_date": null
@@ -2263,7 +3627,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -2276,8 +3640,8 @@
       "available_context_tokens": 200000,
       "max_completion_tokens": 24000,
       "pricing_per_1m": {
-        "input_usd": 0.14,
-        "output_usd": 0.8
+        "input_usd": 0.07,
+        "output_usd": 0.4
       },
       "beta": false,
       "offline": false,
@@ -2316,6 +3680,37 @@
       "deprecation_date": null
     },
     {
+      "id": "openai-gpt-6-luna",
+      "tier": "XS",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1050000,
+      "max_completion_tokens": 128000,
+      "pricing_per_1m": {
+        "input_usd": 0.125,
+        "output_usd": 0.625
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
       "id": "openai-gpt-oss-120b",
       "tier": "XS",
       "privacy": "private",
@@ -2325,7 +3720,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -2340,6 +3735,37 @@
       "pricing_per_1m": {
         "input_usd": 0.07,
         "output_usd": 0.3
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "qwen-3-8-flash",
+      "tier": "XS",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 131072,
+      "pricing_per_1m": {
+        "input_usd": 0.14,
+        "output_usd": 0.49
       },
       "beta": false,
       "offline": false,
@@ -2387,7 +3813,7 @@
         "supportsAudioInput": false,
         "supportsVideoInput": false,
         "supportsReasoning": true,
-        "supportsReasoningEffort": false,
+        "supportsReasoningEffort": true,
         "supportsFunctionCalling": true,
         "optimizedForCode": false,
         "supportsWebSearch": true,
@@ -2402,6 +3828,99 @@
       "pricing_per_1m": {
         "input_usd": 0.1,
         "output_usd": 0.15
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "qwen3-6-35b-a3b",
+      "tier": "XS",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 3,
+      "available_context_tokens": 256000,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 0.1,
+        "output_usd": 1
+      },
+      "beta": true,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "xiaomi-mimo-v2-6-flash",
+      "tier": "XS",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": true,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 131072,
+      "pricing_per_1m": {
+        "input_usd": 0.175,
+        "output_usd": 0.35
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
+      "id": "z-ai-glm-5-3-flash",
+      "tier": "XS",
+      "privacy": "private",
+      "capabilities": {
+        "supportsVision": true,
+        "supportsMultipleImages": true,
+        "supportsAudioInput": false,
+        "supportsVideoInput": true,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": true,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": 10,
+      "available_context_tokens": 1048576,
+      "max_completion_tokens": 131072,
+      "pricing_per_1m": {
+        "input_usd": 0.15,
+        "output_usd": 0.5
       },
       "beta": false,
       "offline": false,
@@ -2431,8 +3950,8 @@
       "available_context_tokens": 128000,
       "max_completion_tokens": 16384,
       "pricing_per_1m": {
-        "input_usd": 0.125,
-        "output_usd": 0.5
+        "input_usd": 0.06,
+        "output_usd": 0.4
       },
       "beta": false,
       "offline": false,
