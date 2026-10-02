@@ -91,7 +91,7 @@ Top level is **strict** — unknown fields are rejected with `400`.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `model` | string | Yes | `jev-latest`, or an alias `jev-1-13-0` / `typesafe-jev`. Missing/empty → `404 "Model is required"`; non-string → `400`; unknown → `404` with a suggestion. |
+| `model` | string | Yes | `jev-latest`, or an alias `jev-1-13-0` / `typesafe-jev`. Missing/empty → `400 "model is required"`; non-string → `400`; unknown → `404` with a suggestion. |
 | `state` | string \| object \| array | Yes | What to evaluate. String must be non-empty; array must have ≥ 1 item; object is free-form JSON (not checked by Venice for emptiness). Use structured JSON for chat logs, records, or app state. |
 | `questions` | object (map) | Yes | Map of `question_id → question`. At least one entry (`"At least one question is required"`). Answers come back under the same ids. Each question is evaluated in parallel and in isolation against the same state; question ids are not sent to the model, so put all meaning in `instructions`. |
 
@@ -295,13 +295,13 @@ API keys whose `modelPrivacy` is `PRIVATE_ONLY` or `PRIVATE_TEXT` are refused (`
 
 | Status | Cause | Fix |
 |---|---|---|
-| `400` | Venice schema validation failed (missing `state`/`questions`, empty `questions`, bad `type`, extra field, `score` with < 2 levels, missing `choice` criteria). Body: `{ error: "Invalid request parameters", details, issues }`. | Fix the field named in `issues[].path`. |
+| `400` | Venice schema validation failed (missing `model`/`state`/`questions`, empty `questions`, bad `type`, extra field, `score` with < 2 levels, missing `choice` criteria). Body: `{ error: "Invalid request parameters", details, issues }`. | Fix the field named in `issues[].path`. |
 | `400` | **Upstream TypeSafe 400/422** — a request that passed Venice's schema but TypeSafe rejected. Venice flattens FastAPI `detail` into `{ "error": "<loc>: <msg>; …" }` (up to 5 items, `body.` prefix stripped, echoed input never returned). If nothing is extractable: `"Invalid request parameters. For assistance, please reach out to support@venice.ai"`. | Read `error` — it names the field path and TypeSafe's message. |
 | `400` | `PAYMENT_HEADER_NOT_ACCEPTED` | Use `SIGN-IN-WITH-X`, not a payment header. |
 | `401` | Auth failed. | Check the key / SIWX header. |
 | `402` | No credentials (x402 discovery); insufficient balance (`INSUFFICIENT_BALANCE` for keys, structured `PAYMENT_REQUIRED` for x402); per-key USD/DIEM spend limit reached. | Top up — [`venice-x402`](../venice-x402/SKILL.md) / [`venice-billing`](../venice-billing/SKILL.md). |
 | `403` | Key privacy setting forbids anonymized models; region or provider restriction; API access disabled for the account. | Use a key with `modelPrivacy: ALL`. |
-| `404` | `model` missing, empty, or unknown. | Send `jev-latest`. |
+| `404` | Unknown `model`. | Send `jev-latest`. |
 | `400` | Non-JSON `Content-Type` → `"'Content-Type' must be 'application/json'"` (the spec lists `415`, but the server returns `400`). | `Content-Type: application/json`. |
 | `429` | Venice per-key rate limit; **or** TypeSafe capacity (upstream 429/529 → "The model is currently overloaded", with `Retry-After`, upstream value or 30 s); **or** the error-budget lockout (50 non-429 4xx responses within a 30 s window, per key + `model` + `user`). | Honour `Retry-After`; back off with jitter. |
 | `500` | Any other upstream failure (non-400/422/429/529 status), the 30 s upstream timeout, or a malformed upstream answer. Not charged. | Retry with backoff. |

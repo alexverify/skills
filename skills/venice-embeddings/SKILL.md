@@ -146,11 +146,11 @@ Always pin the model ID — cosine distances are **not** comparable across diffe
 
 | Code | Meaning |
 |---|---|
-| `400` | Validation error (`details` names the field): token-array input, empty string/array, > 2048 items, item over the 8192-token estimate, unknown field. Non-JSON `Content-Type` → `"'Content-Type' must be 'application/json'"`. Also model-side rejections (e.g. input over the model's own limit), returned with the model's message when one can be extracted, otherwise a generic `"Invalid request parameters…"`. |
+| `400` | Missing `model`, or a validation error (`details` names the field): token-array input, empty string/array, > 2048 items, item over the 8192-token estimate, unknown field. Non-JSON `Content-Type` → `"'Content-Type' must be 'application/json'"`. Also model-side rejections (e.g. input over the model's own limit), returned with the model's message when one can be extracted, otherwise a generic `"Invalid request parameters…"`. |
 | `401` | Invalid API key or SIWX signature. |
 | `402` | Insufficient balance or the key's USD/DIEM spend limit reached. Bearer → `INSUFFICIENT_BALANCE`; x402 → payment-required body + `PAYMENT-REQUIRED` header. A request with **no** credentials at all also gets `402` (x402 discovery challenge), not `401`. |
 | `403` | `MODEL_PRIVACY_RESTRICTED` — the API key's `modelPrivacy` is `PRIVATE_TEXT` or `PRIVATE_ONLY` and the model is `anonymized`. Also region / provider restrictions, or API access disabled for the account. |
-| `404` | Unknown model (the message may suggest a close match) or `model` missing. |
+| `404` | Unknown model (the message may suggest a close match). |
 | `429` | Rate limited. |
 | `500` | Inference failed; retry with jitter. |
 | `503` | Model temporarily offline; retry later. |

@@ -43,7 +43,7 @@ Only the fields below are read; anything else in the form is ignored.
 | Field | Type | Default | Notes |
 |---|---|---|---|
 | `file` | binary | — | **Required.** Real file part (no base64). Accepted: `wav`/`wave`, `flac`, `m4a`, `aac`, `mp4`, `mp3`, `ogg`/`oga`, `webm`. Checked by extension/MIME and then by binary signature. Max **25 MB**. |
-| `model` | string | — | **Send it.** The OpenAPI schema lists `nvidia/parakeet-tdt-0.6b-v3` as default, but that default is never applied: omitting `model` returns `404 "Model is required"`. |
+| `model` | string | — | **Send it.** The OpenAPI schema lists `nvidia/parakeet-tdt-0.6b-v3` as default, but that default is never applied: omitting `model` returns `400 "model is required"`. |
 | `response_format` | `json` / `text` | `json` | Only these two. `text` returns a `text/plain` body with just the transcript. |
 | `timestamps` | bool (`true`/`false` as form string) | `false` | Adds `timestamps` to the JSON response. |
 | `language` | string | — | ISO 639-1 hint (`en`, `ja`, …). Forwarded by Whisper, Wizper, Scribe and xAI STT; ignored by Parakeet (auto-detects). |
@@ -121,11 +121,11 @@ ffmpeg -i long.mp3 -f segment -segment_time 600 -c copy chunk_%03d.mp3
 
 | Code | Meaning |
 |---|---|
-| `400` | Bad params (e.g. `response_format` not `json`/`text`), no `file` part (including a JSON body instead of multipart → `"No audio file provided"`), unsupported extension/MIME, or unrecognized binary signature. |
+| `400` | Missing `model`, bad params (e.g. `response_format` not `json`/`text`), no `file` part (including a JSON body instead of multipart → `"No audio file provided"`), unsupported extension/MIME, or unrecognized binary signature. |
 | `401` | Authentication failed. |
 | `402` | Insufficient balance. Bearer → `INSUFFICIENT_BALANCE`; x402 → `PAYMENT_REQUIRED`. |
 | `403` | Key's privacy setting excludes the model, or region restriction. |
-| `404` | `model` missing or unknown. |
+| `404` | Unknown `model`. |
 | `413` | File larger than 25 MB (`{"code":"PAYLOAD_TOO_LARGE","error":"File exceeds the maximum allowed size of 25 MB."}`). |
 | `422` | Upstream provider couldn't process the audio (zero-length, silent, corrupt, unsupported format or language, provider-side refusal). No `suggested_prompt`. |
 | `429` | Rate limited. |

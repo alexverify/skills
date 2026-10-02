@@ -46,7 +46,7 @@ The body is strict — unknown fields return `400`.
 | Field | Type | Default | Notes |
 |---|---|---|---|
 | `input` | string | — | **Required.** 1–4096 characters, must contain non-whitespace. Text that sanitizes to nothing speakable (e.g. only markup/emoji) → `400 "Input must contain speakable text"`. |
-| `model` | string | — | **Send it.** The OpenAPI schema lists a `tts-kokoro` default, but that default is never applied: omitting `model` returns `404 "Model is required"`. Unknown id → `404`. |
+| `model` | string | — | **Send it.** The OpenAPI schema lists a `tts-kokoro` default, but that default is never applied: omitting `model` returns `400 "model is required"`. Unknown id → `404`. |
 | `voice` | string, ≤ 512 | the model's default voice | Voices are model-specific; a voice from another model → `400`. Also accepts a cloned-voice handle (`vv_…`) from `POST /audio/voices` (same `model` that created it), and — on models with `supports_custom_voice_id: true` (currently `tts-elevenlabs-turbo-v2-5`) — a raw provider Voice ID. |
 | `response_format` | `mp3` / `opus` / `aac` / `flac` / `wav` / `pcm` | the model's `default_format` | **Support is per model** — read `model_spec.supported_formats` / `default_format`. Requesting a format the model doesn't support → `400`. |
 | `speed` | number | `1.0` | Schema range `0.25–4.0`. Passed to Kokoro unchanged; clamped by xAI (`0.7–1.5`), ElevenLabs Turbo (`0.7–1.2`) and MiniMax (`0.5–2`); ignored by the other models. |
@@ -184,11 +184,11 @@ await fs.writeFile('hello.mp3', Buffer.from(await mp3.arrayBuffer()))
 
 | Code | Meaning |
 |---|---|
-| `400` | Schema error (strict body, `input` > 4096 / empty / unspeakable), voice not valid for the model, unsupported `response_format`, bad cloning sample (`/audio/voices`), handle paired with a non-cloning model. |
+| `400` | Missing `model`, schema error (strict body, `input` > 4096 / empty / unspeakable), voice not valid for the model, unsupported `response_format`, bad cloning sample (`/audio/voices`), handle paired with a non-cloning model. |
 | `401` | Authentication failed. |
 | `402` | Insufficient balance. Bearer → `INSUFFICIENT_BALANCE`; x402 → `PAYMENT_REQUIRED` with top-up info. |
 | `403` | Key's privacy setting excludes the model, region restriction, or a cloning model not open to your account on `/audio/voices`. |
-| `404` | `model` missing or unknown. |
+| `404` | Unknown `model`. |
 | `413` | `/audio/voices` sample over 25 MB. |
 | `429` | Rate limited. |
 | `500` | Inference failure / stream error. |

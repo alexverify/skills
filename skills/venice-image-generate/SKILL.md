@@ -129,7 +129,7 @@ const b64 = res.data[0].b64_json
 
 | Field | Values | Notes |
 |---|---|---|
-| `model` | string | Required in practice: omitting it (or sending `""`) returns `404 Model is required`, even though the spec lists a `"default"` default. Unknown IDs (e.g. `dall-e-3`) silently fall back to Venice's default image model (`z-image-turbo`). |
+| `model` | string | Required in practice: omitting it (or sending `""`) returns `400 "model is required"`, even though the spec lists a `"default"` default. Unknown IDs (e.g. `dall-e-3`) silently fall back to Venice's default image model (`z-image-turbo`). |
 | `prompt` | string, 1–1500 chars | Required. 1500 is the cap here regardless of model. |
 | `size` | `auto` (default → 1024×1024), `256x256`, `512x512`, `1024x1024`, `1536x1024`, `1024x1536`, `1792x1024`, `1024x1792` | Mapped to width/height, so it only affects pixel-sized models; aspect-ratio models use their default aspect ratio. |
 | `output_format` | `jpeg` / `png` / `webp` | Defaults to `png`. |
@@ -262,11 +262,11 @@ await fs.writeFile(`out.${ext}`, buf)
 
 | Code | Meaning |
 |---|---|
-| `400` | Bad params: schema violation, unknown field, prompt too long, `steps` above max (on models that use steps), invalid `style_preset`, unsupported `resolution`/`quality` for the model, `width`/`height` sent to `qwen-image`/`qwen-image-3`/`qwen-image-3-pro`, `variants` with `return_binary: true`, `style_references` on an unsupported model or over the cap, unreachable/corrupt reference image. |
+| `400` | Bad params: missing `model`, schema violation, unknown field, prompt too long, `steps` above max (on models that use steps), invalid `style_preset`, unsupported `resolution`/`quality` for the model, `width`/`height` sent to `qwen-image`/`qwen-image-3`/`qwen-image-3-pro`, `variants` with `return_binary: true`, `style_references` on an unsupported model or over the cap, unreachable/corrupt reference image. |
 | `401` | Auth failed. |
 | `402` | No credentials at all (x402 payment-requirements body + `PAYMENT-REQUIRED` header), insufficient balance (Bearer: `INSUFFICIENT_BALANCE`; x402 wallet: `PAYMENT_REQUIRED` body + header), or the API key's USD/DIEM spend limit is reached. |
 | `403` | The API key's `modelPrivacy` setting blocks this model (e.g. a `PRIVATE_ONLY` key calling an `anonymized` model), or the model is unavailable in your region or restricted for your account. |
-| `404` | Model not found, missing, or retired (message names the replacement when there is one). On `/images/generations`, only a missing `model` returns `404`; unknown IDs fall back to the default model. |
+| `404` | Model not found or retired (message names the replacement when there is one). On `/images/generations`, unknown IDs fall back to the default model instead. |
 | `422` | Reference image too large in pixels (over 7680×4320). |
 | `429` | Rate limited, or the upstream provider is overloaded (`Retry-After` is set). |
 | `500` | Inference failed. |
