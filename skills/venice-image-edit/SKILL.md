@@ -86,7 +86,7 @@ Multipart equivalent: send `image` as a file part and the other fields as text p
 | `disable_prompt_optimization_thinking` | Optional bool. Only honored by models with `supportsOptimizePromptThinking: true`; ignored elsewhere. |
 | `safe_mode` | Default `true`; blurs adult content. |
 
-There is **no `quality` field** on `/image/edit`; sending it is a `400`, and quality-tier models are billed at their `defaultQuality`. To pick a quality tier (GPT Image models), use `/image/multi-edit` with a single image.
+There is **no `quality` field** on `/image/edit`; sending it is a `400`, and quality-tier models are billed at their `defaultQuality`. To pick a quality tier (GPT Image models, `ideogram-v4-5-edit`), use `/image/multi-edit` with a single image.
 
 Good prompts: *"remove the tree"*, *"add sunglasses to the cat"*, *"make the sky a vivid orange sunrise"*.
 
@@ -147,7 +147,7 @@ Multipart accepts only file parts for `images` (no URLs or base64), and at most 
 | `images` | Required, 1..per-model max. More than one image on a `combineImages: false` model (e.g. `luma-uni-1-edit`) is a `400`. |
 | `aspect_ratio` | Optional, same enum as `/image/edit`. Must be in the model's `aspectRatios`. `auto` or omitted infers it from the **first** image. |
 | `resolution` | Optional. Must be in the model's `resolutions` if it has any. Silently dropped for models without resolutions (unlike `/image/edit`). Defaults to `defaultResolution`. |
-| `quality` | Optional `low` \| `medium` \| `high`, for models with `constraints.qualities` (GPT Image 2 / 2.5 edits; Grok Imagine 2.0 edit takes `low`/`medium`). A value outside the list is `400`; ignored on other models. Omitted → `defaultQuality`. Changes the price. |
+| `quality` | Optional `low` \| `medium` \| `high`, for models with `constraints.qualities` (GPT Image 2 / 2.5 edits, `ideogram-v4-5-edit`; Grok Imagine 2.0 edit takes `low`/`medium`). A value outside the list is `400`; ignored on other models. Omitted → `defaultQuality`. Changes the price. |
 | `output_format` | Optional `jpeg`/`jpg` \| `png` \| `webp`. Omitted → PNG for 1K, JPEG for 2K/4K. |
 | `enhance_prompt` | Optional bool, default `false`. Same behavior, $0.04 charge, and `x-venice-enhanced-prompt` header as `/image/edit`. |
 | `disable_prompt_optimization_thinking` | Optional bool. |
@@ -226,9 +226,10 @@ curl https://api.venice.ai/api/v1/image/background-remove \
 | `401` | Auth failed. |
 | `402` | No credentials at all (x402 payment-requirements body + `PAYMENT-REQUIRED` header), insufficient balance (Bearer: `"Insufficient USD or Diem balance…"`; x402 wallet: `PAYMENT_REQUIRED` body + header), or the API key's USD/DIEM spend limit is reached. |
 | `403` | The API key's `modelPrivacy` setting blocks the model. A `PRIVATE_ONLY` key can't use anonymized models, which includes most edit models and `bria-bg-remover`. |
+| `404` | Edit / multi-edit: the provider couldn't find or fetch the input media (the body carries the provider's message). |
 | `413` | Multipart file over 25 MB, or request body too large. |
 | `415` | `/image/multi-edit` only, when the body is empty. A wrong `Content-Type` on any route is a `400` (`"'Content-Type' must be 'application/json'"`) — send JSON or multipart. |
-| `422` | Content-policy violation on edit / multi-edit (`CONTENT_POLICY_VIOLATION`), or an image exceeds a pixel limit during processing (e.g. an `/image/edit` input over 8K). |
+| `422` | Content-policy violation on edit / multi-edit (`{"error":"Your prompt violates the content policy of Venice.ai or the model provider"}`, no `code` field), or an image exceeds a pixel limit during processing (e.g. an `/image/edit` input over 8K). |
 | `429` | Rate limited, or the upstream provider is overloaded. |
 | `500` | Edit / upscale / background removal failed. |
 | `503` | Model at capacity — retry with jitter. |

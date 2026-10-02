@@ -62,7 +62,7 @@ curl https://api.venice.ai/api/v1/api_keys \
 ```
 
 - Only non-expired keys are listed, newest first. The full secret is **never** returned — only `last6Chars`.
-- `usage.trailingSevenDays` and `currentPeriodUsage` values are **strings** with 4 decimals. The `usd` figures include bundled-credit spend.
+- `usage.trailingSevenDays` and `currentPeriodUsage` values are **strings** with 4 decimals. The `usd` figures include bundled-credit spend but not earned-credit spend, even though the USD limit counts both.
 - `currentPeriodUsage` is spend inside the current `limitPeriod` window and is present **only** when the key has a USD or DIEM limit set.
 - `consumptionLimits.vcu` is deprecated and always shown; ignore it.
 
@@ -108,7 +108,7 @@ curl https://api.venice.ai/api/v1/api_keys \
 ### Optional
 
 - `expiresAt` — `""`, a date `YYYY-MM-DD`, or a UTC datetime `YYYY-MM-DDTHH:mm:ss[.sss]Z`. Omit (or `""`) for non-expiring.
-- `consumptionLimit.usd` / `.diem` — number `0`–`9999999999`, or `null` for no cap. The **USD** limit caps `USD` + `BUNDLED_CREDITS` spend combined; the **DIEM** limit caps DIEM spend.
+- `consumptionLimit.usd` / `.diem` — number `0`–`9999999999`, or `null` for no cap. The **USD** limit caps `USD`, `BUNDLED_CREDITS` and `EARNED_CREDITS` spend combined; the **DIEM** limit caps DIEM spend.
 - `consumptionLimit.vcu` — **deprecated** (legacy DIEM). Use `diem`.
 - `limitPeriod` — window the limits are measured over. Default `EPOCH`.
 - `modelPrivacy` — which models the key may call. Default `ALL`.
@@ -194,7 +194,7 @@ curl https://api.venice.ai/api/v1/api_keys/rate_limits \
 ```
 
 - `accessPermitted` is the real admission check (balance, per-key limits, account status) — prefer it over `/billing/balance`'s `canConsume`.
-- `balances` are what **this key** can spend right now: each account balance clamped to the key's remaining limit. `BUNDLED_CREDITS` is USD-denominated and `0` when the plan has none. Any of the three may be omitted when unknown.
+- `balances` are what **this key** can spend right now: each account balance clamped to the key's remaining limit. `BUNDLED_CREDITS` is USD-denominated and `0` when the plan has none. Earned credits are not listed. Any of the three may be omitted when unknown.
 - `apiTier.id` is the account's API tier (e.g. `paid`); `isCharged` is always `true`.
 - `rateLimits[].rateLimits[].type` is `RPM` (requests/min), `RPD` (requests/day), or `TPM` (tokens/min); the amounts shown above are illustrative — read them from the response. Video and music models return an empty array (they are not throughput-limited).
 - `nextEpochBegins` is when DIEM allocations and `EPOCH`-period key limits reset.
@@ -263,7 +263,7 @@ console.log(data.apiKey) // save this once
 
 - Body: `address`, `signature`, `token`, and `apiKeyType` are required; `description` defaults to `"Web3 API Key"`; `expiresAt`, `consumptionLimit`, `limitPeriod`, `modelPrivacy` work as in `POST /api_keys`.
 - The signature is verified on Base (chain 8453). Verification failures are `400` with a specific message: bad address, expired/modified token, signature mismatch, or `"Wallet … has no staked VVV on Base"`.
-- The response has the same shape as `POST /api_keys`. The returned `apiKey` behaves exactly like a normal Bearer key. Staked VVV only gates minting: the key still spends DIEM, bundled credits, or USD from the linked account.
+- The response has the same shape as `POST /api_keys`. The returned `apiKey` behaves exactly like a normal Bearer key. Staked VVV only gates minting: the key still spends DIEM, earned credits, bundled credits, or USD from the linked account.
 
 ## Recipes
 
@@ -310,7 +310,7 @@ if (!data.accessPermitted) alert('Key blocked — top up or raise its limit')
 
 - The secret is returned **exactly once**, in the create response. Losing it = delete + recreate.
 - `consumptionLimit` is measured over `limitPeriod` — `EPOCH` (UTC day) unless you choose `MONTH` or `LIFETIME`. It is not per call.
-- The USD limit covers USD **and** bundled credits together.
+- The USD limit covers USD, bundled credits and earned credits together.
 - `GET /api_keys/rate_limits` works with an `INFERENCE` key; `GET /api_keys/rate_limits/log` does **not** (ADMIN only).
 - `modelPrivacy` is enforced: a `PRIVATE_ONLY` key gets `403` for Anonymous models, and `/models` hides them from that key.
 - `vcu` is legacy — use `diem`.

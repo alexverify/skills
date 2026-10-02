@@ -84,7 +84,7 @@ All five are in the live `GET /models?type=asr` list. Price is `model_spec.prici
 | `elevenlabs/scribe-v2` | anonymized | `language` hint; word timestamps. |
 | `stt-xai-v1` | anonymized | `language` hint; word timestamps. |
 
-A key restricted to private models gets `403` on the `anonymized` ones. Failed transcriptions are not charged.
+A key with `modelPrivacy: PRIVATE_ONLY` gets `403` on the `anonymized` ones (`PRIVATE_TEXT` keys are not restricted here). Failed transcriptions are not charged.
 
 ## OpenAI SDK
 
@@ -123,15 +123,15 @@ ffmpeg -i long.mp3 -f segment -segment_time 600 -c copy chunk_%03d.mp3
 |---|---|
 | `400` | Missing `model`, bad params (e.g. `response_format` not `json`/`text`), no `file` part (including a JSON body instead of multipart → `"No audio file provided"`), unsupported extension/MIME, or unrecognized binary signature. |
 | `401` | Authentication failed. |
-| `402` | Insufficient balance. Bearer → `"Insufficient USD or Diem balance…"`; x402 → `PAYMENT_REQUIRED`. |
-| `403` | Key's privacy setting excludes the model, or region restriction. |
+| `402` | Insufficient balance. Bearer → `{"error":"Insufficient USD or Diem balance…"}`, or `"API key USD|DIEM spend limit exceeded…"` when the key's own cap is hit (no `code` field); x402 → `PAYMENT_REQUIRED`. |
+| `403` | A `PRIVATE_ONLY` key calling an `anonymized` model, or region restriction. |
 | `404` | Unknown `model`. |
 | `413` | File larger than 25 MB (`{"code":"PAYLOAD_TOO_LARGE","error":"File exceeds the maximum allowed size of 25 MB."}`). |
 | `422` | Upstream provider couldn't process the audio (zero-length, silent, corrupt, unsupported format or language, provider-side refusal). No `suggested_prompt`. |
 | `429` | Rate limited. |
 | `500` | Inference failure. |
-| `502` | Temporary upstream ASR failure (`ASR_UPSTREAM_FAILED`) — retry. |
-| `503` | Model offline or at capacity — retry with jitter. |
+| `502` | Temporary upstream ASR failure — `{"error":"Audio transcription failed due to a temporary upstream error. Please retry."}` (no `code` field). Retry with backoff. |
+| `503` | Model temporarily offline — retry with jitter. |
 
 See [`venice-errors`](../venice-errors/SKILL.md) for body shapes and retry strategy.
 

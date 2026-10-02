@@ -15,9 +15,9 @@ Primary use case: a **local agent** receives a prompt, decides whether the local
 
 `refresh_routing.py` rewrites both [`snapshots/text-routing.json`](snapshots/text-routing.json) and [`routing-matrix.md`](routing-matrix.md). Both endpoints are public, so no key is needed; `VENICE_API_KEY` / `--api-key` is optional and tailors the result to that key (a `modelPrivacy`-restricted key sees a filtered catalog). Run it once on first install, then ~monthly (CI nightly is also fine).
 
-In the snapshot, each model's `privacy` label is `e2ee` when `supportsE2EE` is true, `tee` when only `supportsTeeAttestation` is true, and otherwise the model's own `private` / `anonymized` value (every TEE/E2EE model is `private` in `/models`, so treat `tee` and `e2ee` as private too); `tier` is bucketed by **input** price only; `beta` is true if either `beta` or `betaModel` is set, so it cannot tell a beta-access-only model from a beta-status one.
+In the snapshot, each model's `privacy` label is `e2ee` when `supportsE2EE` is true, `tee` when only `supportsTeeAttestation` is true, and otherwise the model's own `private` / `anonymized` value (every TEE/E2EE model is `private` in `/models`, so treat `tee` and `e2ee` as private too); `tier` is bucketed by **input** price only; `beta_access` mirrors `model_spec.beta` (only listed to beta-access keys, so it is always `false` in the shipped keyless snapshot) and `beta_status` mirrors `model_spec.betaModel` (callable, but may change or disappear).
 
-Per model the snapshot carries only: the 13 capability flags shown in the matrix, `max_images`, `available_context_tokens`, `max_completion_tokens`, input/output price per 1M, `beta`, `offline`, `region_restrictions` and `deprecation_date`. Filters that need anything else (`uncensored`, `supportsLogProbs`, `reasoningEffortOptions`, `maxVideos`, `cache_input` / `extended` pricing, `replacementModelId`) have to read `GET /models?type=text`.
+Per model the snapshot carries only: the 13 capability flags shown in the matrix, `max_images`, `available_context_tokens`, `max_completion_tokens`, input/output price per 1M, `beta_access`, `beta_status`, `offline`, `region_restrictions` and `deprecation_date`. Filters that need anything else (`uncensored`, `supportsLogProbs`, `reasoningEffortOptions`, `maxVideos`, `cache_input` / `extended` pricing, `replacementModelId`) have to read `GET /models?type=text`.
 
 ## When to load this skill
 
@@ -100,15 +100,15 @@ Map prompt requirement → `model_spec` field (full list in the `model_spec.capa
 
 ## Cost tiers
 
-These buckets are this skill's own convention (the same boundaries `refresh_routing.py` uses), keyed on `model_spec.pricing.input.usd` per 1M tokens. Pick the smallest bucket that hosts a model satisfying your filters.
+These buckets are this skill's own convention (the same boundaries `refresh_routing.py` uses), keyed on `model_spec.pricing.input.usd` per 1M tokens. Upper bounds are exclusive (a model at exactly $1.00 is in M), and the snapshot's `tier_boundaries_usd_per_1m_input` gives each bucket's exclusive upper bound. Pick the smallest bucket that hosts a model satisfying your filters.
 
 | Tier | $/1M input | Use when |
 |---|---|---|
 | **XS** | < $0.20 | Classification, intent extraction, simple summarization. |
-| **S** | $0.20 – $1 | General chat, basic agents, light vision. |
-| **M** | $1 – $4 | Moderate reasoning, strong code, multi-image vision. |
-| **L** | $4 – $10 | Long context, heavy reasoning, complex tool use. |
-| **Frontier** | ≥ $10 | Most expensive closed models (e.g. `claude-fable-5`, `openai-gpt-6-astra`, `openai-gpt-54-pro` as of 2026-09-30). |
+| **S** | $0.20 – < $1 | General chat, basic agents, light vision. |
+| **M** | $1 – < $4 | Moderate reasoning, strong code, multi-image vision. |
+| **L** | $4 – < $10 | Heavy reasoning, complex tool use. |
+| **Frontier** | ≥ $10 | Most expensive closed models (e.g. `claude-fable-5`, `openai-gpt-6-astra`, `openai-gpt-54-pro` as of 2026-10-02). |
 
 Output prices vary widely within a bucket (from ~1.5× to ~10× input), so tie-break on output price. Authoritative per-model pricing lives in `model_spec.pricing` (input and output rates are mirrored as `pricing_per_1m` in the snapshot) — never hard-code dollar figures from this prose.
 
@@ -161,10 +161,10 @@ Walk top-down. Stop at the first rule that applies.
      Tie-break by lower output $/1M, then lower input $/1M.
 
 8. Sanity filters (apply throughout)
-   - Drop model_spec.beta === true unless your key has beta access
-     (such models are only listed to beta-access keys anyway).
-     betaModel === true marks beta-status models that may change or disappear;
-     the snapshot's beta flag merges both, so check /models before dropping.
+   - Drop model_spec.beta === true (snapshot: beta_access) unless your key has
+     beta access (such models are only listed to beta-access keys anyway).
+     betaModel === true (snapshot: beta_status) marks callable beta-status
+     models that may change or disappear; don't drop them, prefer non-beta when tied.
    - Drop model_spec.offline === true.
    - Drop candidates whose model_spec.regionRestrictions lists the caller's country (403 otherwise).
    - Prefer models without model_spec.deprecation.
@@ -174,7 +174,7 @@ Walk top-down. Stop at the first rule that applies.
 
 When the prompt maps cleanly to a named trait, skip the matrix and resolve the trait from the snapshot's `traits` block (sourced from `GET /models/traits?type=text`). Trait names also work directly as the `model` value in a request.
 
-| Trait | Use for | Resolves to (2026-09-30) |
+| Trait | Use for | Resolves to (2026-10-02) |
 |---|---|---|
 | `default` | Generic chat / catch-all. | `zai-org-glm-5-2` |
 | `function_calling_default` | Agent loops, tool use. | `zai-org-glm-5-2` |
@@ -247,8 +247,8 @@ Prompt: "Give me your absolute best take on this 400-page contract bundle." (~20
 
 - Step 5 → context gate drops models with `availableContextTokens` below ~200K.
 - Step 6 → frontier override fires (`most_intelligent`); confirm the resolved model still passes step 5.
-- → `traits.most_intelligent` (whatever the snapshot says; `grok-4-7` with 500K context as of 2026-09-30).
-- Estimate cost with `pricing.extended`: as of 2026-09-30 `grok-4-7` roughly doubles its rates once input exceeds 200,000 tokens, which a ~200K prompt can cross.
+- → `traits.most_intelligent` (whatever the snapshot says; `grok-4-7` with 500K context as of 2026-10-02).
+- Estimate cost with `pricing.extended`: as of 2026-10-02 `grok-4-7` roughly doubles its rates once input exceeds 200,000 tokens, which a ~200K prompt can cross.
 
 **Example 5 — code agent with tools**
 
@@ -281,7 +281,7 @@ Sibling routing skills (`venice-image-routing`, `venice-audio-routing`, `venice-
 - [`venice-responses`](../venice-responses/SKILL.md) — `/responses` (no E2EE).
 - [`venice-auth`](../venice-auth/SKILL.md) — Bearer vs x402 wallet auth.
 - [`venice-api-keys`](../venice-api-keys/SKILL.md) — `modelPrivacy` key restrictions.
-- [`venice-billing`](../venice-billing/SKILL.md) — confirming actual spend matched the routing estimate.
+- [`venice-billing`](../venice-billing/SKILL.md) — confirming actual spend matched the routing estimate (ADMIN key).
 - [`venice-errors`](../venice-errors/SKILL.md) — 402 / 403 / 422 / 429 handling on routed requests.
 - Per-model snapshot: [`snapshots/text-routing.json`](snapshots/text-routing.json).
 - Per-model human-readable matrix: [`routing-matrix.md`](routing-matrix.md).

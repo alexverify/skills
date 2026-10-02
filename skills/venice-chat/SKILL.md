@@ -44,7 +44,7 @@ resp = client.chat.completions.create(
 
 Response shape is the standard OpenAI `chat.completion` object (`id`, `object: "chat.completion"`, `created`, `model`, `choices[].message`, `choices[].finish_reason`, `usage`) plus:
 
-- `cost: {usd, diem}` — the request's cost split by the currency it was charged in (bundled credits count as USD). `0` when the response has no output tokens (those responses are not billed). Omitted if the cost can't be computed.
+- `cost: {usd, diem}` — the request's cost split by the currency it was charged in (bundled credits count as USD). `0` when the response has no output tokens (those responses are not billed). Omitted if the cost can't be computed, and currently also when the request was charged to earned credits.
 - `venice_parameters` — the effective Venice settings, plus `web_search_citations[]` (an empty array when no search ran).
 - `usage.prompt_tokens_details.{cached_tokens, cache_creation_input_tokens}` and `usage.completion_tokens_details.reasoning_tokens` when the provider reports them.
 
@@ -77,7 +77,7 @@ The top-level schema is **strict**: unknown top-level fields return `400`. (A fe
 | `reasoning.summary` | `auto` \| `concise` \| `detailed` |
 | `prompt_cache_key` | cache-routing hint. If omitted, Venice derives a stable key per API user |
 | `prompt_cache_retention` | `default` \| `extended` \| `24h`. `extended` and `24h` extend retention to 24 hours on supported models |
-| `verbosity` / `text.verbosity` | `low` \| `medium` \| `high` \| `auto` (both placements accepted) |
+| `verbosity` / `text.verbosity` | `low` \| `medium` \| `high` \| `auto` (both placements accepted). Non-reasoning OpenAI models accept only `medium` / `auto` (`400` otherwise) |
 | `anon_user_id` | optional end-user identifier (see below) |
 | `fallbacks` | up to 10 `{model}` entries. Anthropic beta parameter for Claude Fable 5 server-side refusal fallback. Forwarded only on direct Anthropic routes, ignored elsewhere |
 | `include`, `metadata` | accepted for OpenAI compatibility, removed before validation and not forwarded |
@@ -96,7 +96,9 @@ The top-level schema is **strict**: unknown top-level fields return `400`. (A fe
 | `response_format` other than `text` | `supportsResponseSchema` |
 | `logprobs: true` or any `top_logprobs` | `supportsLogProbs` |
 
-OpenAI reasoning models (e.g. `openai-gpt-52`) also reject `seed`, `stop`, `n ≠ 1`, and non-zero `presence_penalty` / `frequency_penalty` with `400 "<field> is not supported by this model"`.
+Each rejection is a `400` whose `issues[]` entry for that field gives the reason; read `issues`, not just the top-level `error`.
+
+OpenAI reasoning models (e.g. `openai-gpt-52`) also reject `seed`, `stop`, `n ≠ 1`, and non-zero `presence_penalty` / `frequency_penalty` with `400` (the `issues[]` entry for that field reads `"<field> is not supported by this model"`).
 
 ### `venice_parameters` (Venice-only)
 
@@ -167,7 +169,7 @@ Per-**message** caps: 10 `image_url`, 5 `input_audio`, 3 `video_url`, 5 `file` p
 }
 ```
 
-- `url` is a public `http(s)` URL or a `data:image/...;base64,...` URL. Remote URLs are fetched once for validation: redirects are refused, the body must be ≤ 25 MB, the Content-Type must be PNG, JPEG, WebP, HEIF/HEIC, or AVIF, and the image must decode and be ≥ 64 px on each side (data URLs get the same decode + size check). Failures → `400` "Supplied image did not pass validation checks."
+- `url` is a public `http(s)` URL or a `data:image/...;base64,...` URL (the `example.com` placeholder above fails validation — swap in a real image). Remote URLs are fetched once for validation: redirects are refused, the body must be ≤ 25 MB, the Content-Type must be PNG, JPEG, WebP, HEIF/HEIC, or AVIF, and the image must decode and be ≥ 64 px on each side (data URLs get the same decode + size check). Failures → `400` "Supplied image did not pass validation checks."
 - Models with `supportsMultipleImages: true` keep images across the whole conversation (`maxImages` advertises the model's per-request limit; Venice itself enforces the 10-per-message cap). Single-image vision models keep images only from the **last** image-bearing message; earlier images are removed.
 
 ### Audio (`input_audio`)
@@ -237,7 +239,7 @@ Any content part can carry `{"cache_control": {"type": "ephemeral"}}` or `{"type
 
 - Reasoning arrives in `message.reasoning_content` (`delta.reasoning_content` when streaming); `<think>` tags are removed from `content`. Some providers return encrypted or summarized reasoning.
 - Supported effort values are per model: check `model_spec.capabilities.supportsReasoningEffort`, `reasoningEffortOptions`, and `defaultReasoningEffort`. On most Claude models and on OpenAI GPT models, a value outside `reasoningEffortOptions` → `400` (`none` is always accepted as a Venice-level off switch; on OpenAI models `minimal` is also accepted and maps to the lowest supported level). Other models are not pre-validated, so stick to `reasoningEffortOptions`.
-- To turn thinking off, prefer `reasoning: {"enabled": false}` or `venice_parameters.disable_thinking: true` — both degrade gracefully on mandatory-reasoning models. `reasoning_effort: "none"` also disables thinking.
+- To turn thinking off, prefer `reasoning: {"enabled": false}` or `venice_parameters.disable_thinking: true` — both degrade gracefully on mandatory-reasoning models. `reasoning_effort: "none"` also disables thinking where the model allows it, but some mandatory-reasoning models reject it; prefer the two switches above.
 - Some models return `reasoning_details[]` (and Gemini via native transport returns `thought_signature`) on the assistant message. **Pass them back verbatim** on the next turn, especially in tool loops, to preserve thought signatures.
 - Reasoning tokens count toward `max_completion_tokens` and are billed as output.
 
@@ -269,7 +271,7 @@ For models with `supportsE2EE: true` (the `e2ee-*` IDs), following the [TEE & E2
 
 1. `GET /api/v1/tee/attestation?model=<id>&nonce=<64 hex chars>` (no auth needed, 10 req/min/IP). Verify it and take the model's public key.
 2. Generate a per-session secp256k1 key pair. Encrypt every `user` and `system` message with ECDH → HKDF-SHA256 → AES-256-GCM.
-3. Send the request with `X-Venice-TEE-Client-Pub-Key` and `X-Venice-TEE-Model-Pub-Key` (secp256k1 hex keys), `X-Venice-TEE-Signing-Algo: ecdsa`, and `stream: true` (the guide requires streaming). Malformed headers → `400 "Invalid E2EE headers: …"`.
+3. Send the request with `X-Venice-TEE-Client-Pub-Key` and `X-Venice-TEE-Model-Pub-Key` (secp256k1 hex keys), `X-Venice-TEE-Signing-Algo: ecdsa`, and `stream: true` (the guide requires streaming). Malformed headers → `400` with `{"error":{"message":"Invalid E2EE headers: …","type":"invalid_request_error"}}`.
 4. Decrypt the streamed content with your private key.
 
 On E2EE requests Venice injects nothing: no Venice system prompt, character, web search, or scraping. `file` parts → `400`. The guide also lists function calling as unsupported. Without E2EE headers (or with `enable_e2ee: false`) the same model runs in TEE-only mode. TEE responses carry `X-Venice-TEE: true` and `X-Venice-TEE-Provider`. E2EE is **not** available on `/responses`.
@@ -297,14 +299,14 @@ On E2EE requests Venice injects nothing: no Venice system prompt, character, web
 
 | Status | When |
 |---|---|
-| `400` | Invalid body (validation issues in `details`), capability rejections, invalid image/video, too many parts, context length exceeded, token cap exceeded, bad E2EE headers |
+| `400` | Invalid body (`error: "Invalid request parameters"`, per-field reasons in `issues[]`), capability rejections, invalid image/video, too many parts, context length exceeded, token cap exceeded, bad E2EE headers |
 | `401` | Invalid API key or SIWX sign-in; also a model that requires a paid subscription |
 | `402` | No credentials at all (x402 discovery body — not `401`), insufficient balance, or API-key spend limit. x402 insufficient balance: `code: "PAYMENT_REQUIRED"` body with `topUpInstructions` + `siwxChallenge`, and a `PAYMENT-REQUIRED` header ([`venice-x402`](../venice-x402/SKILL.md)) |
 | `403` | Model not allowed by the API key's `modelPrivacy`, region-restricted model, or provider restriction |
 | `404` | Unknown model (often with a "Did you mean" hint) or `character_slug` |
 | `413` | Payload too large |
 | `422` | Content-policy violation (Venice or provider) |
-| `429` | Rate limit (with rate-limit headers), or model overloaded (no rate-limit headers) |
+| `429` | Rate limit exceeded (`"Rate limit exceeded"` or the error-budget message), or model overloaded (`"The model is currently overloaded…"` with a `Retry-After` header). Both carry `x-ratelimit-*` headers, so tell them apart by `Retry-After` and the message |
 | `500` / `503` / `504` | Inference failed / model offline / upstream timeout |
 
 See [`venice-errors`](../venice-errors/SKILL.md) for shapes and retry strategy.

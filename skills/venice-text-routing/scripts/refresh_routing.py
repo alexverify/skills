@@ -138,17 +138,18 @@ def normalize_model(entry: dict[str, Any]) -> dict[str, Any]:
             "input_usd": input_usd,
             "output_usd": output_usd,
         },
-        "beta": bool(spec.get("beta") or spec.get("betaModel")),
+        "beta_access": bool(spec.get("beta")),
+        "beta_status": bool(spec.get("betaModel")),
         "offline": bool(spec.get("offline")),
         "region_restrictions": spec.get("regionRestrictions") or [],
         "deprecation_date": (spec.get("deprecation") or {}).get("date"),
     }
 
 
-def write_snapshot(models: list[dict[str, Any]], traits: dict[str, str], base_url: str) -> None:
+def write_snapshot(models: list[dict[str, Any]], traits: dict[str, str], base_url: str, snapshot_date: str) -> None:
     SNAPSHOT_PATH.parent.mkdir(parents=True, exist_ok=True)
     payload = {
-        "snapshot_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "snapshot_date": snapshot_date,
         "source": {
             "models": f"GET {base_url.rstrip('/')}/api/v1/models?type=text",
             "traits": f"GET {base_url.rstrip('/')}/api/v1/models/traits?type=text",
@@ -211,7 +212,8 @@ def render_section(title: str, blurb: str, models: list[dict[str, Any]], empty: 
             + [fmt_cap(m, key) for _, key in CAPABILITY_COLUMNS]
             + [fmt_ctx(m), fmt_price(m)]
         )
-        rows.append("| " + " | ".join(f"`{c}`" if c == m["id"] else c for c in cells) + " |")
+        cells[0] = f"`{m['id']}`" + (f" (deprecated {m['deprecation_date'][:10]})" if m["deprecation_date"] else "")
+        rows.append("| " + " | ".join(cells) + " |")
     return f"### {title}\n\n{blurb}\n\n" + "\n".join(rows) + "\n"
 
 
@@ -232,8 +234,9 @@ def write_matrix(models: list[dict[str, Any]], traits: dict[str, str], snapshot_
         ("XS — `< $0.20` input per 1M", "Cheapest path; classification, intent extraction, simple summarization.", by_tier.get("XS", [])),
         ("S — `$0.20 – < $1` input per 1M", "General chat, basic agents, light vision.", by_tier.get("S", [])),
         ("M — `$1 – < $4` input per 1M", "Reasoning at moderate depth, strong code, multi-image vision.", by_tier.get("M", [])),
-        ("L — `$4 – < $10` input per 1M", "Long context (≥ 200K), heavy reasoning, complex tool use.", by_tier.get("L", [])),
+        ("L — `$4 – < $10` input per 1M", "Heavy reasoning, complex tool use.", by_tier.get("L", [])),
         ("Frontier — `≥ $10` input per 1M", "Best-available. Resolve via trait `most_intelligent`.", by_tier.get("Frontier", [])),
+        ("Unpriced", "No input price in `/models`.", by_tier["unknown"], "_No unpriced models in the current snapshot._"),
         (
             "TEE — hardware-attested",
             "Verify via `GET /api/v1/tee/attestation`.",
@@ -273,9 +276,11 @@ def write_matrix(models: list[dict[str, Any]], traits: dict[str, str], snapshot_
     body += "\n".join(render_section(*section) for section in sections)
     body += (
         "\n## Sanity filters applied at routing time\n\n"
-        "- Drop models with `model_spec.beta === true` unless your key has beta access.\n"
+        "- Drop models with `beta_access` (`model_spec.beta`) unless your key has beta access. "
+        "`beta_status` (`model_spec.betaModel`) models are callable but may change or disappear; prefer non-beta when tied.\n"
         "- Drop models with `model_spec.offline === true`.\n"
         "- Drop models whose `model_spec.regionRestrictions` list the caller's country.\n"
+        "- Prefer models without `model_spec.deprecation` (marked `deprecated <date>` above).\n"
     )
     MATRIX_PATH.write_text(body, encoding="utf-8")
 
@@ -323,8 +328,8 @@ def main() -> int:
         sys.stdout.write("\n")
         return 0
 
-    write_snapshot(models, traits, base)
     snapshot_date = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    write_snapshot(models, traits, base, snapshot_date)
     write_matrix(models, traits, snapshot_date)
 
     print(f"Wrote {SNAPSHOT_PATH.relative_to(SKILL_DIR.parent.parent)}")

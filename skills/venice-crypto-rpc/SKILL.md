@@ -5,7 +5,7 @@ description: Use Venice as a pay-per-call JSON-RPC proxy to 27 EVM, Starknet, an
 
 # Venice Crypto RPC (JSON-RPC proxy)
 
-Venice exposes a **multi-chain JSON-RPC proxy** billed per call. Same request shape as Alchemy / Infura — change the base URL and pay per credit from your Venice balance (DIEM → bundled credits → USD) or an x402 wallet.
+Venice exposes a **multi-chain JSON-RPC proxy** billed per call. Same request shape as Alchemy / Infura — change the base URL and pay per credit from your Venice balance (DIEM → earned credits → bundled credits → USD) or an x402 wallet.
 
 | Endpoint | Auth | Notes |
 |---|---|---|
@@ -175,7 +175,7 @@ Use this for state-mutating methods (`eth_sendRawTransaction`, `eth_sendUserOper
 ## Rate limits and concurrency
 
 - **100 requests per minute** per user. Every request counts, including ones later rejected with `400` and idempotent replays.
-- Over the cap ⇒ `429` with `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` (Unix seconds). The breach also shows in `GET /api_keys/rate_limits/log` as `modelId: "endpoint:api/v1/crypto/rpc"`.
+- Over the cap ⇒ `429` with `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` (Unix seconds). The breach also shows in `GET /api_keys/rate_limits/log` (ADMIN key only) as `modelId: "endpoint:api/v1/crypto/rpc"`.
 - A batch counts as **one** request, so batching is the way to raise throughput.
 - Requests are **processed one at a time per user**. A concurrent request waits briefly (~0.5 s) and otherwise gets `429` `"Another request for this user is in flight"`. Retry with jitter, or batch instead of fanning out in parallel.
 - There is no daily credit cap. (The spec text still mentions a 10,000,000-credits/24h cap; it no longer applies.)

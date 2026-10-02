@@ -58,7 +58,7 @@ The request schema is **strict**: unknown fields are rejected with `400`.
 | `width`, `height` | int | 1024, 1024 | ≤ 1280 each. Only used by pixel-sized models (no `constraints.aspectRatios`). Aspect-ratio models ignore them, and `qwen-image`, `qwen-image-3`, `qwen-image-3-pro` **reject** them with `400` — use `aspect_ratio`. |
 | `aspect_ratio` | string | model default | E.g. `"1:1"`, `"16:9"`, `"4:3"`. Send only values from the model's `constraints.aspectRatios`. `/image/generate` doesn't validate this field: most models fall back to `defaultAspectRatio`, but some pass it upstream and fail. |
 | `resolution` | string | model default | `"1K"`, `"2K"`, `"4K"`. Must be in the model's `constraints.resolutions` (otherwise `400`). Silently dropped for models with no `resolutions`. |
-| `quality` | `"low"`/`"medium"`/`"high"` | model default | Only for models with `constraints.qualities` (GPT Image 2 / 2.5, Grok Imagine 2.0). A value outside that list is `400`; ignored on other models. Changes the price — see `pricing.quality`. |
+| `quality` | `"low"`/`"medium"`/`"high"` | model default | Only for models with `constraints.qualities` (GPT Image 2 / 2.5, Ideogram V4.5, Grok Imagine 2.0). A value outside that list is `400`; ignored on other models. Changes the price — see `pricing.quality`. |
 | `cfg_scale` | number | model default | `0 < x ≤ 20`. Higher = more prompt adherence. |
 | `steps` | int | `min(steps.max, 20)` | Only used by models that take steps (today `venice-sd35`, `lustify-*`, `wai-Illustrious`); on those it is `1..constraints.steps.max` and above max is `400`. Every other model, including `z-image-turbo` and `chroma`, accepts any integer and ignores it. |
 | `seed` | int | random | `-999999999..999999999`. Omit for a random seed (`0` is a literal seed, not "random"). Some models ignore it (e.g. GPT Image, Muse, Luma, Recraft, ImagineArt, Seedream V5 Pro, Nano Banana Pro, Grok Imagine). |
@@ -137,7 +137,7 @@ const b64 = res.data[0].b64_json
 | `moderation` | `auto` (default, safe mode on) / `low` (safe mode off) | — |
 | `n` | `1` | Only one image per call. |
 | `anon_user_id` | string | Same as on `/image/generate`. |
-| `quality`, `style`, `background`, `output_compression`, `user` | — | Accepted for OpenAI compatibility and ignored, but values must still be valid (`quality`: `auto`/`high`/`medium`/`low`/`hd`/`standard`; `style`: `vivid`/`natural`; `background`: `transparent`/`opaque`/`auto`; `output_compression`: 0–100). `user` is discarded; it is not an alias of `anon_user_id`. |
+| `quality`, `style`, `background`, `output_compression`, `user` | — | Accepted for OpenAI compatibility and ignored, but values must still be valid (`quality`: `auto`/`high`/`medium`/`low`/`hd`/`standard`; `style`: `vivid`/`natural`; `background`: `transparent`/`opaque`/`auto`; `output_compression`: 0–100). `user` is not used for inference and is not an alias of `anon_user_id`, but it does split the error budget per value (see [`venice-errors`](../venice-errors/SKILL.md#error-budget)). |
 
 Response: `{ "created": <unix>, "data": [{ "b64_json": "..." }] }` (or `[{ "url": "data:image/png;base64,..." }]`). Images from this endpoint are never watermarked. Unknown fields are rejected with `400`.
 
@@ -183,7 +183,7 @@ Representative IDs (verify with `GET /models?type=image` — the list changes of
 | `width`/`height` | `z-image-turbo` (default model), `venice-sd35`, `chroma`, `lustify-v8` |
 | `aspect_ratio` only | `flux-2-pro`, `seedream-v5-lite`, `muse-image`, `qwen-image-2`, `krea-v2-large` |
 | `aspect_ratio` + `resolution` | `nano-banana-2`, `nano-banana-pro`, `seedream-v5-pro`, `qwen-image-3` |
-| `aspect_ratio` + `resolution` + `quality` | `gpt-image-2`, `gpt-image-2-5-flare`, `gpt-image-2-5-sunburst`, `grok-imagine-image-2-0` (low/medium only) |
+| `aspect_ratio` + `resolution` + `quality` | `gpt-image-2`, `gpt-image-2-5-flare`, `gpt-image-2-5-sunburst`, `ideogram-v4-5` (1K / 2K), `grok-imagine-image-2-0` (low/medium only) |
 
 `bria-bg-remover` also appears under `type=image`, but it is the background-removal model. Use it through [`/image/background-remove`](../venice-image-edit/SKILL.md), not `/image/generate`.
 
@@ -207,13 +207,13 @@ On models that honor `seed` (e.g. `z-image-turbo`, `seedream-v4`, `nano-banana-2
 {"model": "seedream-v5-pro", "prompt": "...", "aspect_ratio": "4:3", "resolution": "2K"}
 ```
 
-### Quality tier (GPT Image 2 / 2.5)
+### Quality tier (GPT Image 2 / 2.5, Ideogram V4.5)
 
 ```json
 {"model": "gpt-image-2-5-flare", "prompt": "...", "aspect_ratio": "3:2", "resolution": "2K", "quality": "medium"}
 ```
 
-Omitting `quality` uses `defaultQuality` (`high` for the GPT Image models). The price depends on both resolution and quality.
+Omitting `quality` uses `defaultQuality` (`high` for the GPT Image and Ideogram V4.5 models). The price depends on both resolution and quality.
 
 ### Style preset + negative
 

@@ -14,7 +14,7 @@ Music, sound effects and character-priced voice generation are **asynchronous**:
 | `POST` | `/api/v1/audio/retrieve` | Bearer key or x402 (SIWX) | Status JSON or the audio bytes. 120 req/min per user. |
 | `POST` | `/api/v1/audio/complete` | Bearer key or x402 (SIWX) | Delete the stored media. |
 
-For short synchronous text-to-speech use [`venice-audio-speech`](../venice-audio-speech/SKILL.md). Voice-changer (speech-to-speech) models are **refused** on these four endpoints with a `400` pointing at `/audio/voice-changer/*` — see [`venice-audio-voice-changer`](../venice-audio-voice-changer/SKILL.md).
+For short synchronous text-to-speech use [`venice-audio-speech`](../venice-audio-speech/SKILL.md). Voice-changer (speech-to-speech) models are **refused** on these four endpoints with a `400` pointing at `/audio/voice-changer/*` (callers who can't see the model get `404` instead) — see [`venice-audio-voice-changer`](../venice-audio-voice-changer/SKILL.md).
 
 ## Use when
 
@@ -110,7 +110,7 @@ curl https://api.venice.ai/api/v1/audio/retrieve \
 - Done: `200` with the audio bytes. `Content-Type` is the audio type; headers `x-venice-audio-format`, `x-venice-inference-time` (s), `x-venice-model-id`, `x-venice-model-name`, and for Seed Audio also `x-venice-audio-duration` and `x-venice-audio-subtitle`.
 - `delete_media_on_completion: true` deletes the media after this download, so you can skip step 4.
 
-If generation fails (content policy, capacity, provider validation), the charge is refunded and the error is returned here.
+If generation fails (content policy, capacity, provider validation), the charge is refunded (except a DIEM charge from a previous epoch) and the error is returned here.
 
 ### 4. `POST /audio/complete` — cleanup
 
@@ -197,10 +197,10 @@ Each `GET /models?type=music` entry's `model_spec` exposes:
 |---|---|
 | `400` | Schema error (strict body), unsupported option for the model, bad `duration_seconds`, `lyrics_optimizer` + `lyrics_prompt`, voice-changer model on these endpoints, a provider-side validation failure reported on retrieve (refunded), or an unknown / foreign `queue_id` on retrieve/complete (`"Request ID is invalid."`). Voice errors include `details.supported_voices`. |
 | `401` | Authentication failed. |
-| `402` | Insufficient balance. Bearer → `"Insufficient USD or Diem balance…"`; x402 → `PAYMENT_REQUIRED`. |
-| `403` | Key's privacy setting excludes the model, or region restriction. |
+| `402` | Insufficient balance. Bearer → `{"error":"Insufficient USD or Diem balance…"}`, or `"API key USD|DIEM spend limit exceeded…"` when the key's own cap is hit (no `code` field). x402: below the $0.10 floor → `PAYMENT_REQUIRED` body with top-up info; above the floor but below the quote → the same plain `{"error":"Insufficient USD or Diem balance…"}` body (no `code`) — check `/x402/balance/{wallet}` and top up. |
+| `403` | A `PRIVATE_ONLY` key calling an `anonymized` model, or region restriction. |
 | `404` | Unknown `model`; or on retrieve, media not found / expired / already deleted. |
-| `422` | Content policy violation (queue or retrieve). May include `suggested_prompt`. Charge refunded. |
+| `422` | Content policy violation (queue or retrieve). May include `suggested_prompt`. Charge refunded (except a DIEM charge from a previous epoch). |
 | `429` | Rate limited (40/min queue, 120/min retrieve, per user). |
 | `500` | Inference failure. |
 | `503` | Model at capacity — retry later. |
@@ -209,7 +209,7 @@ See [`venice-errors`](../venice-errors/SKILL.md) for body shapes.
 
 ## Gotchas
 
-- **Quote before queue.** Queue charges up front (credits) or checks your x402 balance against the quote. With an API key, compare the quote to `data.balances` from [`GET /api_keys/rate_limits`](../venice-api-keys/SKILL.md), which works with an INFERENCE key and is already capped at the key's spend limit; the request is charged to the first currency that covers the whole quote (DIEM, then bundled credits, then USD). With a wallet, use [`/x402/balance/...`](../venice-x402/SKILL.md).
+- **Quote before queue.** Queue charges up front (credits) or checks your x402 balance against the quote. With an API key, compare the quote to `data.balances` from [`GET /api_keys/rate_limits`](../venice-api-keys/SKILL.md), which works with an INFERENCE key and is already capped at the key's spend limit; the request is charged to the first currency that covers the whole quote (DIEM, then earned credits, then bundled credits, then USD; `balances` doesn't list earned credits). With a wallet, use [`/x402/balance/...`](../venice-x402/SKILL.md).
 - Sending an unsupported option (`lyrics_prompt`, `voice`, `speed`, `language_code`, `loop`, `duration_seconds`, …) is a `400`, not a silent no-op. Build the body from `model_spec`.
 - Store `queue_id` **and** `model` — every later call needs both.
 - Media is ephemeral. Save the bytes on retrieve; after `complete` (or `delete_media_on_completion`) the audio is gone.

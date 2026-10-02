@@ -58,7 +58,7 @@ Response: `{"quote": 0.55}` (USD).
 - Required: `model`, and `duration` for models with fixed durations.
 - `resolution` and `aspect_ratio` fall back to the model default when omitted.
 - The quote endpoint **discards** fields a model doesn't use (e.g. `audio` on a model with `audio_configurable: false`, `aspect_ratio` on a model with no `aspect_ratios`, unknown keys) — `/video/queue` rejects them. A successful quote does not prove the queue body is valid.
-- **Upscale models** (`topaz-video-upscale`): quote requires an API key (`403` without one) and `video_url` — Venice fetches the file to detect duration, FPS, and height (`400` if it can't read it). `duration` is ignored. Pass `upscale_factor` (`1` / `2` / `4`) to price the factor you will queue; `resolution: "1x"` / `"2x"` / `"4x"` is a deprecated alias.
+- **Upscale models** (`topaz-video-upscale`): quote requires a Bearer API key (`403` without one, so x402 wallets can't quote them — queue directly and rely on the `402` balance check) and `video_url` — Venice fetches the file to detect duration, FPS, and height (`400` if it can't read it). `duration` is ignored. Pass `upscale_factor` (`1` / `2` / `4`) to price the factor you will queue; `resolution: "1x"` / `"2x"` / `"4x"` is a deprecated alias.
 - **Video-to-video models** (e.g. `wan-2-7-video-to-video`): `video_url` is required; duration is detected from the file.
 - **R2V models with reference-video support** (Seedance 2.x, MiniMax H3 / H3 Max, Wan 3.0 R2V, …): pass `reference_video_total_duration` (aggregate seconds of all reference videos, capped at the model's aggregate limit — e.g. 15 for Seedance 2.0 / H3 / Wan 3.0, 30 for Seedance 2.5; over the cap is `400`). Reference video is billed, so omitting it returns the no-reference price, which under-quotes. `reference_image_count` (≤ the model's reference-image cap, else `400`) prices models billed per input image; omitted, one image is billed.
 
@@ -81,8 +81,8 @@ curl https://api.venice.ai/api/v1/video/queue \
 
 Response: `{ "model": "...", "queue_id": "uuid" }`, plus `download_url` for VPS-backed models.
 
-- Validation and the balance check happen before the `200`; API-key callers are also charged then (x402 wallet callers are charged once the job is accepted). Content screening and the provider submit run **after** the response, so those failures are reported on `/video/retrieve`, not here, and the charge is refunded (`credits_refunded` in the error body reports the outcome where present).
-- `download_url` is returned only for **VPS-backed** models — currently the Grok Imagine `*-private` family. For those, `/video/retrieve` returns JSON status only; `GET` the `download_url` (no auth header) once status is `COMPLETED`. Valid up to 24 h.
+- Validation and the balance check happen before the `200`; API-key callers are also charged then (x402 wallet callers are charged once the job is accepted). Content screening and the provider submit run **after** the response, so those failures are reported on `/video/retrieve`, not here. Failures are normally refunded (`credits_refunded` in the error body reports the outcome where present), with one exception: the Runway models (`runway-gen4-5`, `runway-gen4-5-text`, `runway-gen4-turbo`) keep the charge when the provider rejects the request on content policy (`credits_refunded: false`).
+- `download_url` is returned for **VPS-backed** models — currently every Grok Imagine video model, including the `*-private` ids and `grok-imagine-1-5-lite-text-to-video` / `grok-imagine-1-5-lite-image-to-video`. Decide by whether the queue response contains `download_url`, not by the model id. When it does, `/video/retrieve` returns JSON status only; `GET` the `download_url` (no auth header) once status is `COMPLETED`. Valid up to 24 h.
 
 ### 3. Poll with `/video/retrieve`
 
@@ -112,7 +112,7 @@ curl https://api.venice.ai/api/v1/video/complete \
   -d '{"model":"...","queue_id":"..."}'
 ```
 
-Body: `model` + `queue_id` only. Response: `200` `{"success": true}`, or `{"success": false}` if the delete did not go through. Optional, and currently unreliable: it can return `400` `"Request ID is invalid."` even for a `queue_id` that `/video/retrieve` accepts. To clean up, poll with `delete_media_on_completion: true` rather than relying on this endpoint.
+Body: `model` + `queue_id` only. Response: `200` `{"success": true}`, or `{"success": false}` if the delete did not go through. Currently it returns `400` `"Request ID is invalid."` for `queue_id`s issued by `/video/queue`, so don't rely on it: clean up by polling with `delete_media_on_completion: true`.
 
 ## `/video/queue` request fields
 
@@ -265,6 +265,7 @@ Replacement: to analyze, summarize, or ask questions about a video (including Yo
 ## Full polling loop
 
 ```ts
+// Pass download_url from the queue response whenever it is present.
 async function waitForVideo(model: string, queueId: string, downloadUrl?: string) {
   while (true) {
     const res = await fetch(`${base}/video/retrieve`, {
@@ -277,14 +278,15 @@ async function waitForVideo(model: string, queueId: string, downloadUrl?: string
     }
     const body = await res.json()
     if (!res.ok) {
-      // Job failures are replayed here (e.g. 422 with credits_refunded). 429 means back off and retry.
-      if (res.status === 429) { await new Promise(r => setTimeout(r, 15000)); continue }
+      // Job failures are replayed here (e.g. 422 with credits_refunded). 429 / 502 / 503 are transient.
+      if ([429, 502, 503].includes(res.status)) { await new Promise(r => setTimeout(r, 15000)); continue }
       throw new Error(`video failed (${res.status}): ${JSON.stringify(body)}`)
     }
     if (body.status === 'COMPLETED' && downloadUrl) {
       const v = await fetch(downloadUrl)
       return Buffer.from(await v.arrayBuffer())
     }
+    if (body.status === 'COMPLETED') throw new Error('COMPLETED without download_url: pass download_url from the queue response')
     if (body.status !== 'PROCESSING') throw new Error(`unexpected ${body.status}`)
     await new Promise(r => setTimeout(r, 5000))
   }
@@ -297,7 +299,7 @@ async function waitForVideo(model: string, queueId: string, downloadUrl?: string
 |---|---|
 | `400` | Invalid params (unsupported field for this model, bad enum, missing `prompt` / `image_url` / `video_url`, over-limit arrays, blocked or unreadable media URL, corrupted image). On `/video/retrieve` (and currently `/video/complete`): `"Request ID is invalid."` for an unknown or expired `queue_id`. |
 | `401` | Authentication failed. |
-| `402` | Insufficient balance (checked on `/video/queue` before the charge). x402 callers get a `PAYMENT-REQUIRED` challenge. |
+| `402` | Insufficient balance or the API key's spend limit (checked on `/video/queue` before the charge). A wallet below the $0.10 floor gets the x402 `PAYMENT_REQUIRED` body and `PAYMENT-REQUIRED` header; a wallet above the floor but below this job's quote gets the plain `{"error":"Insufficient USD or Diem balance…"}` body with no header — top up via `/x402/top-up` and retry. |
 | `403` | Model unavailable in your region, not permitted by the API key's model-privacy setting, or an unauthenticated upscale quote. |
 | `404` | Model not found (any video endpoint). On `/video/retrieve`: media expired or already deleted. |
 | `409` | `/video/queue` only, unlisted face-enabled Seedance models: `{"error":{"code":"needs_consent",...},"consent_flow":"seedance","face_media_roles":[...],"consent":{"consent_version","policy_text"},"docs_url"}`. |
@@ -306,6 +308,7 @@ async function waitForVideo(model: string, queueId: string, downloadUrl?: string
 | `422` | Content policy or provider-side failure. Screening runs after the job is accepted, so these normally arrive on `/video/retrieve`: provider rejection `{"error":{"message","type":"provider_content_policy","credits_refunded",...}}` (may include `recommended_model`), or provider-side failure `{"error","credits_refunded"}` (plus `hint` when available). |
 | `429` | Rate limit (`/video/queue` 40 req/min, `/video/retrieve` 120 req/min, authenticated upscale quotes 40 req/min — per user) or model overloaded. |
 | `500` | Inference or internal failure. A `500` replayed by `/video/retrieve` is terminal for that `queue_id` — resubmit (after revising the prompt / media if it may have been blocked). |
+| `502` | `/video/retrieve` only: the video finished but couldn't be fetched from the provider. Not recorded on the job — back off and poll again. |
 | `503` | Model offline or at capacity — retry later. |
 
 See [`venice-errors`](../venice-errors/SKILL.md) for body shapes and retry strategy.
@@ -314,8 +317,8 @@ See [`venice-errors`](../venice-errors/SKILL.md) for body shapes and retry strat
 
 - **The quote validates less than the queue.** Quote drops unsupported fields; queue returns `400` for them. Build the queue body from `/models` constraints, not from a successful quote.
 - **`aspect_ratio` is required on `/video/queue`** whenever the model lists aspect ratios, and forbidden when it lists none.
-- **Queue success ≠ generation success.** Moderation and provider errors surface on `/video/retrieve`, with the refund status in `credits_refunded` where present. Always handle non-`200` retrieve responses.
-- `download_url` is **only** returned for VPS-backed models (Grok Imagine `*-private`). Handle both paths: binary from `/video/retrieve`, or `GET download_url` after `COMPLETED`. It expires within 24 h — download promptly.
+- **Queue success ≠ generation success.** Moderation and provider errors surface on `/video/retrieve`, with the refund status in `credits_refunded` where present. Always handle non-`200` retrieve responses. Runway content-policy rejections are not refunded.
+- `download_url` is **only** returned for VPS-backed models (the Grok Imagine models) — check for the field, not the id. Handle both paths: binary from `/video/retrieve`, or `GET download_url` after `COMPLETED`. It expires within 24 h — download promptly.
 - Upscale models use `upscale_factor`, never `resolution` (queue rejects `resolution`; quote accepts `1x` / `2x` / `4x` only as a deprecated alias).
 - `GET /models` lists `"Auto"` as the duration for most upscale and video-to-video models, but `/video/queue` rejects the literal `"Auto"` — omit `duration` instead.
 - **Seedance naming**: the listed Seedance ids end in `-basic` (e.g. `seedance-2-0-text-to-video-basic`), plus the separate `seedance-2-5-us-*-private` family. Neither uses `consents` / `needs_consent`, and media showing identifiable people may be rejected upstream. The face-consent flow (`consents.seedance` with `confirmed_terms_and_privacy`, `confirmed_legal_right`, `confirmed_screening_acknowledged` all `true`, resubmitted after a `409`) applies only to unlisted Seedance ids that `/models` does not return.

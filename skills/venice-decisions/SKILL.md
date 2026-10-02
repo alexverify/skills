@@ -289,21 +289,22 @@ API keys whose `modelPrivacy` is `PRIVATE_ONLY` or `PRIVATE_TEXT` are refused (`
 - **Price** (live `GET /models?type=decision`): **$0.042 per 1M input tokens** (0.042 DIEM); output tokens **$0**. A 429-input-token request costs ≈ $0.000018. Always read `model_spec.pricing` for the current number.
 - Charged from `usage` **after** a successful response. If the upstream answer is malformed or missing `usage`, you get `500` and are not charged.
 - Balance is checked before the call; insufficient balance → `402`.
-- **Rate limits** (per key, Jev-specific override): Paid tier **100 RPM / 1,000,000 TPM**; Partner Tier 1 **300 RPM / 10,000,000 TPM**. One request is counted before the model runs; tokens (`input + output`) are metered afterwards. Check yours with `GET /api_keys/rate_limits` ([`venice-api-keys`](../venice-api-keys/SKILL.md)).
+- **Rate limits** (per account, shared by all its keys; Jev-specific override): Paid tier **100 RPM / 1,000,000 TPM**; Partner Tier 1 **300 RPM / 10,000,000 TPM**. One request is counted before the model runs; tokens (`input + output`) are metered afterwards. Check yours with `GET /api_keys/rate_limits` ([`venice-api-keys`](../venice-api-keys/SKILL.md)).
 
 ## Errors
 
 | Status | Cause | Fix |
 |---|---|---|
-| `400` | Venice schema validation failed (missing `model`/`state`/`questions`, empty `questions`, bad `type`, extra field, `score` with < 2 levels, missing `choice` criteria). Body: `{ error: "Invalid request parameters", details, issues }`. | Fix the field named in `issues[].path`. |
+| `400` | `model` missing / empty or not a string → plain `{ "error": "model is required" }` / `"model must be a string"` (checked before the schema, no `issues`). | Send `"model": "jev-latest"`. |
+| `400` | Venice schema validation failed (missing `state`/`questions`, empty `questions`, bad `type`, extra field, `score` with < 2 levels, missing `choice` criteria). Body: `{ error: "Invalid request parameters", details, issues }`. | Fix the field named in `issues[].path`. |
 | `400` | **Upstream TypeSafe 400/422** — a request that passed Venice's schema but TypeSafe rejected. Venice flattens FastAPI `detail` into `{ "error": "<loc>: <msg>; …" }` (up to 5 items, `body.` prefix stripped, echoed input never returned). If nothing is extractable: `"Invalid request parameters. For assistance, please reach out to support@venice.ai"`. | Read `error` — it names the field path and TypeSafe's message. |
 | `400` | `PAYMENT_HEADER_NOT_ACCEPTED` | Use `SIGN-IN-WITH-X`, not a payment header. |
 | `401` | Auth failed. | Check the key / SIWX header. |
-| `402` | No credentials (x402 discovery); insufficient balance (`"Insufficient USD or Diem balance…"` for keys, structured `PAYMENT_REQUIRED` for x402); per-key USD/DIEM spend limit reached. | Top up — [`venice-x402`](../venice-x402/SKILL.md) / [`venice-billing`](../venice-billing/SKILL.md). |
+| `402` | No credentials (x402 discovery); insufficient balance (`"Insufficient USD or Diem balance…"` for keys, structured `PAYMENT_REQUIRED` for x402); per-key USD/DIEM spend limit reached. | API key: add credits at https://venice.ai/settings/api, or raise the key's limit (ADMIN key, `PATCH /api_keys`). Wallet: `POST /x402/top-up` ([`venice-x402`](../venice-x402/SKILL.md)). |
 | `403` | Key privacy setting forbids anonymized models; region or provider restriction; API access disabled for the account. | Use a key with `modelPrivacy: ALL`. |
 | `404` | Unknown `model`. | Send `jev-latest`. |
 | `400` | Non-JSON `Content-Type` → `"'Content-Type' must be 'application/json'"` (the spec lists `415`, but the server returns `400`). | `Content-Type: application/json`. |
-| `429` | Venice per-key rate limit; **or** TypeSafe capacity (upstream 429/529 → "The model is currently overloaded", with `Retry-After`, upstream value or 30 s); **or** the error-budget lockout (50 non-429 4xx responses within a 30 s window, per key + `model` + `user`). | Honour `Retry-After`; back off with jitter. |
+| `429` | Venice rate limit for your account on this model; **or** TypeSafe capacity (upstream 429/529 → "The model is currently overloaded", with `Retry-After`, upstream value or 30 s); **or** the error-budget lockout (50 non-429 4xx responses within a 30 s window, per key + `model`; this route rejects a `user` field, so all of a key's decisions requests share one bucket). | Honour `Retry-After`; back off with jitter. |
 | `500` | Any other upstream failure (non-400/422/429/529 status), the 30 s upstream timeout, or a malformed upstream answer. Not charged. | Retry with backoff. |
 | `503` | Model marked offline. | Retry later. |
 

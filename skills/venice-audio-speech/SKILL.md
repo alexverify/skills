@@ -51,12 +51,12 @@ The body is strict — unknown fields return `400`.
 | `response_format` | `mp3` / `opus` / `aac` / `flac` / `wav` / `pcm` | the model's `default_format` | **Support is per model** — read `model_spec.supported_formats` / `default_format`. Requesting a format the model doesn't support → `400`. |
 | `speed` | number | `1.0` | Schema range `0.25–4.0`. Passed to Kokoro unchanged; clamped by xAI (`0.7–1.5`), ElevenLabs Turbo (`0.7–1.2`) and MiniMax (`0.5–2`); ignored by the other models. |
 | `streaming` | bool | `false` | `true` → chunked audio stream as it's generated. `false` → buffered file with `Content-Length`. |
-| `language` | string, 2–32 chars | — | Optional hint; form is model-specific (see below). Most models drop values they don't accept; xAI passes the value through as given. |
+| `language` | string, 2–32 chars | — | Optional hint; form is model-specific (see below). Gemini Flash drops values outside its locale list and ElevenLabs Turbo drops values longer than 5 chars; Qwen 3, MiniMax and xAI forward the value as given, and a value the model rejects returns `400 "Invalid request parameters: language"`. Other models ignore it. |
 | `prompt` | string, ≤ 500 | — | Style/emotion instruction. Used by Qwen 3 and Gemini Flash (sent as style instructions); ignored elsewhere. |
 | `temperature` | number, 0–2 | — | Used by Qwen 3, Orpheus, Chatterbox HD, Gemini Flash; ignored elsewhere. |
 | `top_p` | number, 0–1 | — | Qwen 3 only; ignored elsewhere. |
 
-`language` by model: Qwen 3 → full names (`English`, `Chinese`, …; default auto); xAI → ISO 639-1 (`en`), passed through as given, so send a valid code (default auto); ElevenLabs Turbo → ISO 639-1 (values longer than 5 chars dropped); MiniMax → full names (sent as a language boost); Gemini Flash → full locale strings such as `English (US)` or `Japanese (Japan)` (anything else dropped). Kokoro, Inworld, Chatterbox, Orpheus and Gradium ignore it.
+`language` by model: Qwen 3 → full names (`English`, `Chinese`, …; default auto); xAI → ISO 639-1 (`en`), passed through as given, so send a valid code (default auto); ElevenLabs Turbo → ISO 639-1 (values longer than 5 chars dropped, shorter ones forwarded); MiniMax → full names (sent as a language boost, unchecked); Gemini Flash → full locale strings such as `English (US)` or `Japanese (Japan)` (anything else dropped). Kokoro, Inworld, Chatterbox, Orpheus and Gradium ignore it.
 
 ## Models
 
@@ -77,7 +77,7 @@ Every id below is in the live `GET /models?type=tts` list. Prices are `model_spe
 
 Always inspect `GET /models?type=tts` before calling: `model_spec.voices` (authoritative voice list), `supported_formats`, `default_format`, `supports_custom_voice_id`, `privacy`, `pricing`, and — on cloning models — `voice_cloning`. Per-model parameter support (`prompt` / `temperature` / `top_p` / `language`) is **not** exposed on `/models`; use the table above.
 
-A key restricted to private models gets `403` on the `anonymized` models.
+A key with `modelPrivacy: PRIVATE_ONLY` gets `403` on the `anonymized` models (`PRIVATE_TEXT` keys are not restricted here).
 
 ## Voices (from `model_spec.voices`)
 
@@ -124,7 +124,7 @@ curl https://api.venice.ai/api/v1/audio/voices \
 
 - **Zero-shot**: no voice template is derived; the reference audio is stored with a TTL and re-read on every synthesis call. Handles stop working **7 days after creation**, regardless of use.
 - `mp4` covers M4A. Samples in other containers (or with a non-audio signature) → `400` before anything is uploaded.
-- Each successful clone is charged a flat fee (currently $0.05); synthesis is billed separately per character on `/audio/speech`.
+- Each successful clone is charged a flat per-clone fee; synthesis is billed separately per character on `/audio/speech`.
 
 `tts-minimax-speech-02-hd` also appears in the `model` enum in the OpenAPI spec, but cloning with it isn't open to regular keys, which get `403 "Voice cloning … is not available on your account"`. Its model spec on `/models` carries no `voice_cloning` object — use that as the signal.
 
@@ -186,14 +186,14 @@ await fs.writeFile('hello.mp3', Buffer.from(await mp3.arrayBuffer()))
 |---|---|
 | `400` | Missing `model`, schema error (strict body, `input` > 4096 / empty / unspeakable), voice not valid for the model, unsupported `response_format`, bad cloning sample (`/audio/voices`), handle paired with a non-cloning model. |
 | `401` | Authentication failed. |
-| `402` | Insufficient balance. Bearer → `"Insufficient USD or Diem balance…"`; x402 → `PAYMENT_REQUIRED` with top-up info. |
-| `403` | Key's privacy setting excludes the model, region restriction, or a cloning model not open to your account on `/audio/voices`. |
+| `402` | Insufficient balance. Bearer → `{"error":"Insufficient USD or Diem balance…"}`, or `"API key USD|DIEM spend limit exceeded…"` when the key's own cap is hit (no `code` field); x402 → `PAYMENT_REQUIRED` with top-up info. |
+| `403` | A `PRIVATE_ONLY` key calling an `anonymized` model, region restriction, or a cloning model not open to your account on `/audio/voices`. |
 | `404` | Unknown `model`. |
 | `413` | `/audio/voices` sample over 25 MB. |
 | `429` | Rate limited. |
 | `500` | Inference failure / stream error. |
-| `502` | Temporary upstream TTS failure (`TTS_UPSTREAM_FAILED`) — retry. |
-| `503` | Model offline or at capacity — retry with jitter. |
+| `502` | Temporary upstream TTS failure — `{"error":"Speech synthesis failed due to a temporary upstream error. Please retry."}` (no `code` field). Retry with backoff. |
+| `503` | Model temporarily offline — retry with jitter. |
 
 See [`venice-errors`](../venice-errors/SKILL.md) for body shapes and retry strategy.
 
@@ -201,7 +201,7 @@ See [`venice-errors`](../venice-errors/SKILL.md) for body shapes and retry strat
 
 - Always send `model` — the documented default never applies.
 - `input` hard cap is 4096 chars. For long content, split on sentence boundaries and concatenate audio client-side.
-- Don't assume `mp3`: Inworld, Chatterbox, Orpheus and Gradium default to `wav`, and most models reject formats outside their `supported_formats`. Omit `response_format` or check `/models` first.
+- Don't assume `mp3`: Inworld, Chatterbox, Orpheus and Gradium default to `wav`, and any `response_format` outside a model's `supported_formats` returns `400`. Omit `response_format` or check `/models` first.
 - `speed` is only applied by Kokoro (unclamped), xAI, ElevenLabs Turbo and MiniMax (clamped). Keep `0.8–1.3` for natural narration.
 - `streaming` is a Venice-specific field that isn't in the OpenAI SDK's types; pass it as an extra body field, or call the REST endpoint directly and consume the body.
 - Voice names are case-sensitive (`eve` ≠ `Eve`, `af_sky` ≠ `AF_SKY`). Note `leo` (xAI/Orpheus) vs `Leo` (Gradium, French).

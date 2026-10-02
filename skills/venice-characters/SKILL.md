@@ -66,7 +66,7 @@ Response: `{ "object": "list", "data": [Character, ...] }` (no total count — p
 | `author` | 5-character anonymized ID derived from the author. |
 | `tags[]` | Tag names. |
 | `featured`, `adult`, `webEnabled` | Booleans. |
-| `modelId` | Venice API model ID the character was built for (e.g. `venice-uncensored-1-2`); Venice's default chat model if the character has none. |
+| `modelId` | Model ID the character was built for — usually a Venice API model ID such as `venice-uncensored-1-2`, but it can be an id `/models` doesn't list; Venice's default chat model if the character has none. |
 | `stats` | `{ averageRating, imports, ratingCount, ratingSum, userRating }`. Missing stats come back as `0`; `userRating` is currently always `null`. |
 | `createdAt`, `updatedAt` | ISO-8601. |
 
@@ -169,7 +169,7 @@ const res = await fetch(`${base}/characters?sortBy=featured&limit=50`, {
 })
 const { data } = await res.json()
 // show data[].photoUrl, data[].name, data[].stats.averageRating
-// pick a character, then pass its slug (and usually its modelId) into chat:
+// pick a character, then pass its slug (and its modelId if it appears in GET /models) into chat:
 await chat({
   model: picked.modelId,
   venice_parameters: { character_slug: picked.slug },
@@ -208,5 +208,5 @@ await chat({
 - Slugs are the **public ID** on the character's page (`venice.ai/c/<slug>`); they are not the `id` UUID (though both resolve).
 - **`isAdult` is exclusive, not additive.** You can't get adult and non-adult characters in one list call. If the account behind the key has the mature filter enabled, adult characters are never returned, even with `isAdult=true`.
 - **`modelId` filter vs. `modelId` field.** For some models, filtering by the API model ID may return nothing even though characters built for that model exist — fall back to filtering `data[].modelId` client-side.
-- `modelId` on a character is a suggestion. If you reuse it, it may be Pro-only or offline — handle `401 "only available to Pro users"` / `503` from chat and fall back to another model.
+- `modelId` on a character is a suggestion. If you reuse it, it may be Pro-only, offline, or not an API model at all — handle `404 "Specified model not found"`, `401 "only available to Pro users"` and `503` from chat and fall back to another model.
 - `photoUrl` / `shareUrl` / `description` are typed nullable — don't assume they exist.

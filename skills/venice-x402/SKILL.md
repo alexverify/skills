@@ -106,6 +106,7 @@ const settle = await fetch(`${base}/x402/top-up`, {
   method: 'POST',
   headers: { 'PAYMENT-SIGNATURE': header },
 })
+if (!settle.ok) throw new Error(`Top-up failed: ${settle.status} ${await settle.text()}`)
 const { data } = await settle.json()
 console.log(data.newBalance, data.amountCredited, data.paymentId)
 ```
@@ -130,10 +131,10 @@ The settlement result is also returned base64-encoded in the `PAYMENT-RESPONSE` 
 
 ### 3. Call inference with `SIGN-IN-WITH-X`
 
-Send a fresh SIWX proof for the wallet on each request. Venice debits the wallet's credit balance for each request — after it is served for most endpoints; queued video / audio jobs are charged up front and refunded if they fail.
+Send a fresh SIWX proof for the wallet on each request. Venice debits the wallet's credit balance for each request — after it is served for most endpoints. Queued video / audio jobs are checked against the quote at queue time and charged once the provider accepts the job (Seed Audio on completion); failed jobs are refunded.
 
 - A wallet needs at least **$0.10** of credit to be admitted.
-- An EVM wallet that is linked to a Venice account with staked DIEM spends that **DIEM first**; the USDC credit balance is used only when no DIEM is available.
+- An EVM wallet that is linked to a Venice account with staked DIEM spends that **DIEM first**; the USDC credit balance is used only when no DIEM is available. While DIEM remains, the request is billed to the linked account, not the wallet's credit, so a `402` in that state is not fixed by `/x402/top-up` — wait for the next epoch or fund the linked account.
 - At most **5 concurrent requests per wallet**; the 6th gets `429` `X402_CONCURRENCY_LIMIT`.
 
 When the credit balance is below $0.10, the endpoint returns `402` with a balance document (it differs from the discovery body):
@@ -270,7 +271,11 @@ Entries are newest first. Query params: `limit` 1–100 (default 50), `offset` �
 
 ## Errors
 
-Top-up errors are JSON `{ "error": "<CODE>", "message": "...", ... }`.
+Body shapes differ by route:
+
+- `POST /x402/top-up`: the code is in `error` — `{ "error": "<CODE>", "message": "...", ... }`.
+- Inference routes: the code is in `code` and `error` is a message — `{ "error": "<message>", "code": "PAYMENT_HEADER_NOT_ACCEPTED" | "X402_SIGN_IN_…" | "X402_CONCURRENCY_LIMIT" }`.
+- `/x402/balance` and `/x402/transactions`: `{ "error": "<message>" }` with no code. The x402 route `429` is `{ "error": "Rate limit exceeded. Please try again later." }`.
 
 | Code | Meaning |
 |---|---|
@@ -295,4 +300,4 @@ Top-up errors are JSON `{ "error": "<CODE>", "message": "...", ... }`.
 - On `/x402/balance` and `/x402/transactions`, a **missing** SIWX header returns `402` (not 401). Only a present-but-invalid header returns `401`.
 - `accepts[].amount` is already in **base units** (`"5000000"` = 5 USDC). Don't multiply by decimals again.
 - The spec lists an `X-Balance-Remaining` response header on inference routes, but the server does not currently set it. Poll `GET /x402/balance/{walletAddress}` instead.
-- `DIEM`, `BUNDLED_CREDITS`, and Bearer-account `USD` are independent from wallet credits. For account balance, use [`venice-billing`](../venice-billing/SKILL.md).
+- `DIEM`, `EARNED_CREDITS`, `BUNDLED_CREDITS`, and Bearer-account `USD` are independent from wallet credits. For account balance, use [`venice-billing`](../venice-billing/SKILL.md).

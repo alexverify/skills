@@ -116,7 +116,7 @@ Skills are derived from the current Venice OpenAPI spec and public docs at <http
 
 | Mode | Header | When to use |
 |---|---|---|
-| **Bearer API key** | `Authorization: Bearer <key>` | Venice account; spends DIEM, then bundled credits, then USD. |
+| **Bearer API key** | `Authorization: Bearer <key>` | Venice account; each request is charged to one currency, in the order DIEM → earned credits → bundled credits → USD. |
 | **x402 / SIWX wallet** | `SIGN-IN-WITH-X: <base64 SIWX>` | No account required, pay per request with USDC on Base (chain `8453`) or Solana mainnet. The legacy `X-Sign-In-With-X` name still works. |
 
 See [`skills/venice-auth`](./skills/venice-auth/SKILL.md) for full signing details.

@@ -160,7 +160,7 @@ curl -X POST https://api.venice.ai/api/v1/augment/search \
 
 | Status | Cause |
 |---|---|
-| `400` | Missing file, unsupported file type, no extractable text, password-protected/invalid PDF; invalid/blocked URL (X, Reddit, private/internal); empty or > 400-char query; `limit` out of range; non-JSON `Content-Type` on scrape/search (`"'Content-Type' must be 'application/json'"`). Body: `{ error, details? }`. |
+| `400` | Missing file, unsupported file type, no extractable text, password-protected/invalid PDF; invalid/blocked URL (X, Reddit, private/internal); empty or > 400-char query; `limit` out of range; non-JSON `Content-Type` on scrape/search (`"'Content-Type' must be 'application/json'"`). Body: `{ error }`, or `{ error: "Invalid request parameters", details, issues }` on schema failures. |
 | `401` | Invalid API key or SIWX signature. |
 | `402` | Insufficient balance or the key's USD/DIEM spend limit reached. Bearer → `"Insufficient USD or Diem balance…"`; x402 → payment-required body + `PAYMENT-REQUIRED` header. Requests with no credentials at all also get `402` (x402 discovery challenge). |
 | `403` | API access disabled for the account (`"API access has been disabled for this account…"`). |

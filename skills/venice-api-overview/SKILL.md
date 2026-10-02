@@ -22,7 +22,7 @@ All endpoints live under:
 https://api.venice.ai/api/v1
 ```
 
-The OpenAPI spec is served at `https://api.venice.ai/api/v1/swagger.yaml` (version `20260918.184256` at the time of writing).
+The OpenAPI spec is served at `https://api.venice.ai/api/v1/swagger.yaml` (`info.version` is a `YYYYMMDD.HHMMSS` timestamp; read it from the live spec).
 
 ## Authentication
 
@@ -38,7 +38,7 @@ Not every endpoint accepts both:
 | All inference: chat, responses, embeddings, decisions, image, audio (speech, transcriptions, voices, queue/retrieve/complete, voice-changer queue/retrieve/complete), video queue/retrieve/complete, augment, `POST /crypto/rpc/{network}` | Bearer **or** SIWX |
 | `/api_keys/*` (except `generate_web3_key`), `/billing/*` (except the retired `/billing/usage`), `/characters/*` | Bearer only (a `SIGN-IN-WITH-X` header alone gets `401 Authentication failed`) |
 | `/x402/balance/{wallet}`, `/x402/transactions/{wallet}` | SIWX only (signer must own the wallet) |
-| `/models*`, `/image/styles`, `/video/quote`, `/audio/quote`, `/audio/voice-changer/quote`, `/crypto/rpc/networks`, `/tee/attestation`, `/tee/signature`, `/api_keys/generate_web3_key`, `POST /x402/top-up` | No auth needed |
+| `/models*`, `/image/styles`, `/video/quote` (except upscale models such as `topaz-video-upscale`: Bearer key required, so wallets can't quote them), `/audio/quote`, `/audio/voice-changer/quote`, `/crypto/rpc/networks`, `/tee/attestation`, `/tee/signature`, `/api_keys/generate_web3_key`, `POST /x402/top-up` | No auth needed |
 
 On any route that needs credentials - Bearer-only ones included - a request with **no** `Authorization` and no `SIGN-IN-WITH-X` header gets `402` with an x402 discovery body (payment options + SIWX challenge + `authOptions`), not `401`. See [`venice-auth`](../venice-auth/SKILL.md).
 
@@ -100,7 +100,7 @@ Voice changer: the endpoints are in the spec, but no voice-changer model is publ
 |---|---|---|
 | Crypto RPC proxy | `GET /crypto/rpc/networks`, `POST /crypto/rpc/{network}` | [`venice-crypto-rpc`](../venice-crypto-rpc/SKILL.md) |
 | Augment | `POST /augment/text-parser`, `/augment/scrape`, `/augment/search` | [`venice-augment`](../venice-augment/SKILL.md) |
-| TEE verification | `GET /tee/attestation`, `GET /tee/signature` (public, 10 req/min per IP) | [`venice-chat`](../venice-chat/SKILL.md) |
+| TEE verification | `GET /tee/attestation`, `GET /tee/signature` (public, 10 req/min per IP) | [`venice-text-routing`](../venice-text-routing/SKILL.md#verifying-a-tee-claim) |
 
 ### Retired (return `410 Gone`)
 
@@ -115,10 +115,10 @@ Both answer with `410` plus `Deprecation` and `Link: <…>; rel="successor-versi
 
 | Header | When | Meaning |
 |---|---|---|
-| `x-ratelimit-limit-requests` / `-remaining-requests` / `-reset-requests` | Most inference responses | Request window for your account - per model (the tighter of per-minute and per-day), or per endpoint on video / audio-generation / augment routes. Reset is a Unix timestamp in **milliseconds**. |
+| `x-ratelimit-limit-requests` / `-remaining-requests` / `-reset-requests` | Most inference responses | Request window for your account - per model (the tighter of per-minute and per-day), or per endpoint on video / audio-generation routes and `/augment/scrape` / `/augment/search`. Reset is a Unix timestamp in **milliseconds**. |
 | `x-ratelimit-limit-tokens` / `-remaining-tokens` / `-reset-tokens` | Token-limited text models | Tokens-per-minute window (reset in ms). |
-| `x-ratelimit-remaining` / `x-ratelimit-resets` | Most responses on routes that need credentials | The **error budget** (failed requests allowed in the 30 s window), not your request quota. Reset in ms. |
-| `x-venice-balance-usd` / `x-venice-balance-diem` | Inference responses | Spendable balance when the request started (x402 callers see their wallet credit here). Omitted when that balance is zero; the USD figure excludes bundled credits. |
+| `x-ratelimit-remaining` / `x-ratelimit-resets` | Most responses on routes that need credentials | The **error budget** (failed requests allowed in the 30 s window), not your request quota. Read before the current response is counted, so a failed response showing `1` means none are left. Reset in ms. |
+| `x-venice-balance-usd` / `x-venice-balance-diem` | Inference responses | Spendable balance when the request started (x402 callers see their wallet credit here). Omitted when that balance is zero; the USD figure excludes bundled and earned credits. |
 | `x-venice-version` | Inference responses | Server revision - handy in bug reports. |
 | `x-venice-deprecated`, `x-venice-model-deprecation-date`, `x-venice-model-deprecation-warning`, `x-venice-deprecated-replacement` | Requests to a model scheduled for retirement (chat, image, video queue) | Retirement date and suggested replacement. |
 | `PAYMENT-REQUIRED` | Every x402 `402`: no credentials, wallet below the minimum balance, `/x402/top-up` discovery, `/x402/balance` / `/x402/transactions` without SIWX | Base64 JSON of the x402 v2 payment-required object (`accepts[]`, plus the `sign-in-with-x` challenge except on `/x402/top-up`). |
@@ -131,7 +131,7 @@ The spec also documents an `X-Balance-Remaining` header on x402 responses, but c
 ## Pricing model at a glance
 
 - Pricing is **dynamic per request**, metered in USD. Paid endpoints in the spec carry an `x-payment-info` block (`price.mode: dynamic`, `min: "0.001"`, `max: "10.00"` USD); `POST /x402/top-up` is `5`-`10000`. Read-only routes (`/models`, quotes) have none.
-- API-key accounts spend **DIEM** first, then **bundled credits**, then **USD** balance. Per-key `consumptionLimits` can cap USD / DIEM spend.
+- API-key accounts charge each request to a single currency, picked in the order **DIEM** → **earned credits** → **bundled credits** → **USD** (see [`venice-billing`](../venice-billing/SKILL.md#currency--priority)). Per-key `consumptionLimits` can cap USD / DIEM spend.
 - x402 wallets spend a prepaid **USDC credit balance** topped up on Base or Solana (minimum top-up $5; a request needs at least $0.10 of balance to start). An EVM wallet linked to a Venice account with staked DIEM spends DIEM first.
 - The per-model price is on `GET /models` → `model_spec.pricing`, already including any promotion active for your account. Video has no price there - use `POST /video/quote`; music / voice changer have exact quotes via `/audio/quote` and `/audio/voice-changer/quote`. See [`venice-models`](../venice-models/SKILL.md).
 
@@ -173,4 +173,4 @@ Exceptions worth knowing: context-length overflows on chat return an OpenAI-styl
 2. `GET /models?type=…` - pick a model and note its `model_spec.constraints` and `model_spec.pricing`.
 3. Wire up one happy-path call from the matching skill.
 4. Add error handling using [`venice-errors`](../venice-errors/SKILL.md) (402, 422, 429).
-5. Hook up observability via `x-ratelimit-*` / `x-venice-balance-*` headers, `/billing/usage-history`, or `/x402/transactions/{wallet}`.
+5. Hook up observability via `x-ratelimit-*` / `x-venice-balance-*` headers, `/billing/usage-history` (ADMIN key only), or `/x402/transactions/{wallet}` (wallet callers).

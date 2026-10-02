@@ -1,6 +1,6 @@
 ---
 name: venice-billing
-description: Venice billing and usage analytics - GET /billing/balance, GET /billing/usage-history (keyset-paginated per-request ledger, JSON or CSV), and GET /billing/usage-analytics (aggregated by date/model/key). All require an ADMIN key. GET /billing/usage was sunset on 2026-09-16 and now always returns 410. Covers the DIEM/BUNDLED_CREDITS/USD consumption priority and building dashboards. (Beta)
+description: Venice billing and usage analytics - GET /billing/balance, GET /billing/usage-history (keyset-paginated per-request ledger, JSON or CSV), and GET /billing/usage-analytics (aggregated by date/model/key). All require an ADMIN key. GET /billing/usage was sunset on 2026-09-16 and now always returns 410. Covers the DIEM/EARNED_CREDITS/BUNDLED_CREDITS/USD consumption priority and building dashboards. (Beta)
 ---
 
 # Venice Billing
@@ -9,12 +9,12 @@ Read-only endpoints for account-level billing and analytics. `usage-analytics` i
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /billing/balance` | Current `canConsume` flag, remaining DIEM & USD, epoch allocation. |
+| `GET /billing/balance` | Current `canConsume` flag, remaining DIEM, earned credits, bundled credits and USD, epoch allocation. |
 | `GET /billing/usage-history` | Per-request ledger with keyset (cursor) pagination. JSON or CSV. |
 | `GET /billing/usage-analytics` | Aggregated breakdowns: by date, model, API key. |
 | `GET /billing/usage` | **Retired.** Sunset 2026-09-16; every request returns `410`. |
 
-All three live endpoints require Bearer auth with an **ADMIN** key — an `INFERENCE` key gets `401` (`"Admin API key required"`). They do not accept x402 wallet auth; for wallet balances use [`venice-x402`](../venice-x402/SKILL.md). A request with no `Authorization` header at all gets a `402` x402 auth challenge rather than a `401` (see [`venice-x402`](../venice-x402/SKILL.md)); a bad key gets `401`.
+All three live endpoints require Bearer auth with an **ADMIN** key — an `INFERENCE` key gets `401` (`"Admin API key required"`). They do not accept x402 wallet auth; for wallet balances use [`venice-x402`](../venice-x402/SKILL.md). A request with no `Authorization` header at all gets a `402` x402 discovery body rather than a `401` — ignore its payment options and send an ADMIN Bearer key; a bad key gets `401`.
 
 > **`GET /billing/usage` is gone.** Since 2026-09-16 it returns `410 Gone` to every
 > request, authenticated or not, with no usage data. The body's `error` string names
@@ -27,15 +27,18 @@ All three live endpoints require Bearer auth with an **ADMIN** key — an `INFER
 
 ## Currency / priority
 
-Each request is charged to a single currency: the first one, in this order, whose balance covers the request's cost:
+Each request is charged to a single currency, picked in this order:
 
 1. **`DIEM`** — from staked DIEM; the allocation resets every epoch (UTC day).
-2. **`BUNDLED_CREDITS`** — USD-denominated credits included with paid Venice subscription plans.
-3. **`USD`** — prepaid fiat balance.
+2. **`EARNED_CREDITS`** — USD-denominated earned credits.
+3. **`BUNDLED_CREDITS`** — USD-denominated credits included with paid Venice subscription plans.
+4. **`USD`** — prepaid fiat balance.
+
+Prepaid (quoted) charges such as queued jobs and images use the first currency that covers the whole cost. Token-priced requests are billed after they run, to the first currency with a positive balance, which can leave it slightly negative.
 
 Legacy `VCU` (the old name for DIEM) is no longer a consumable currency; it is rejected by `/billing/usage-history`'s `currency` filter.
 
-A per-key USD consumption limit covers `USD` and `BUNDLED_CREDITS` together; a DIEM limit covers `DIEM` (see [`venice-api-keys`](../venice-api-keys/SKILL.md)).
+A per-key USD consumption limit covers `USD`, `BUNDLED_CREDITS` and `EARNED_CREDITS` together; a DIEM limit covers `DIEM` (see [`venice-api-keys`](../venice-api-keys/SKILL.md)).
 
 ## `GET /billing/balance`
 
@@ -48,15 +51,15 @@ curl https://api.venice.ai/api/v1/billing/balance \
 {
   "canConsume": true,
   "consumptionCurrency": "DIEM",
-  "balances": { "diem": 90.5, "usd": 25 },
+  "balances": { "diem": 90.5, "usd": 25, "bundledCredits": 10, "earnedCredits": null },
   "diemEpochAllocation": 100
 }
 ```
 
-- `canConsume` is `true` when DIEM remains this epoch or the USD balance is positive. It does **not** factor in bundled credits, per-key limits, or the account's API tier — the real admission check runs on each inference request. Use `GET /api_keys/rate_limits` → `accessPermitted` for a check that includes those.
-- `consumptionCurrency` is `"DIEM"`, `"USD"`, or `null` here. The spec enum also lists `VCU` / `BUNDLED_CREDITS`, but this endpoint never returns them.
-- `balances.diem` is `null` when the account has less than 0.1 staked DIEM (the minimum before DIEM is spendable); otherwise the remaining DIEM this epoch.
-- `balances.usd` is `null` when the USD balance is not positive.
+- `canConsume` is `true` when the account's spendable DIEM, earned credits, bundled credits and USD total at least $0.10. It does **not** account for per-key limits or the account's API tier — the real admission check runs on each inference request. Use `GET /api_keys/rate_limits` → `accessPermitted` for a check that includes those.
+- `consumptionCurrency` is the first currency with a positive balance, in the order `DIEM`, `EARNED_CREDITS`, `BUNDLED_CREDITS`, `USD`, or `null`. The spec enum also lists `VCU`, but it is never returned.
+- `balances.diem` is `null` when the account isn't staking DIEM; otherwise the remaining DIEM this epoch.
+- `balances.usd`, `balances.bundledCredits` and `balances.earnedCredits` are `null` when not positive.
 - `diemEpochAllocation` is the total DIEM for the current epoch — `balances.diem / diemEpochAllocation` = remaining fraction.
 
 ## `GET /billing/usage-history`
@@ -79,7 +82,7 @@ validator is strict.
 |---|---|
 | `startTimestamp` | Optional. Inclusive lower bound, ISO 8601 UTC with a `Z` suffix (max 40 chars). First page only. |
 | `endTimestamp` | Optional. Exclusive upper bound, same format. Must be later than `startTimestamp`. Consecutive windows that share a boundary walk the history with no gaps and no overlaps. |
-| `currency` | Optional. `USD` / `DIEM` / `BUNDLED_CREDITS`. |
+| `currency` | Optional. `USD` / `DIEM` / `BUNDLED_CREDITS` / `EARNED_CREDITS`. |
 | `pageSize` | Integer 10–1000. Default **1000**. |
 | `cursor` | Opaque continuation token (`[A-Za-z0-9_-]`, ≤ 512 chars) from a previous `nextCursor`. Carries the filters and page size of the walk it continues, so send it **alone**. |
 
@@ -120,7 +123,7 @@ stay stable while new usage is recorded; no result totals are reported.
 - `units` — for LLMs, millions of tokens (e.g. `0.000227` = 227 tokens).
 - `pricePerUnitUsd` — rate per unit in USD.
 - `amount` — negative for a debit.
-- `currency` — `USD`, `DIEM`, or `BUNDLED_CREDITS`.
+- `currency` — `USD`, `DIEM`, `BUNDLED_CREDITS`, or `EARNED_CREDITS`.
 - `inferenceDetails` — `null` for non-inference entries. When present, `requestId` is the `id` returned on the original response; `promptTokens`, `completionTokens`, and `inferenceExecutionTime` (ms) are each nullable when not recorded (tokens are `null` for non-LLM usage).
 
 ### CSV
@@ -189,7 +192,7 @@ curl "https://api.venice.ai/api/v1/billing/usage-analytics?lookback=7d" \
 }
 ```
 
-- `byDate` has one entry per day in the window (ascending, zero-filled). `USD` totals include `BUNDLED_CREDITS` (both are USD-denominated).
+- `byDate` has one entry per day in the window (ascending, zero-filled). `USD` totals include `BUNDLED_CREDITS` but not `EARNED_CREDITS`: spend paid from earned credits is left out of every analytics total.
 - `byModel` / `byKey` list **every** model and key, sorted by total spend (USD + DIEM). `breakdown` (Input / Output / Cache Read / Cache Write …) is present only when a model has more than one token type.
 - `byModelDaily` / `byKeyDaily` are chart rows: `date` (Unix ms) plus one field per series with USD + DIEM combined. `byModelDailyUsd` / `byKeyDailyUsd` are the same rows with only the USD (incl. bundled credits) portion. These two `*Usd` arrays are returned but not yet in the published schema.
 - `topModels` / `topKeyNames` are the charted series: the top **50** by spend, plus a trailing `"Other"` series that sums everything past 50 (only when there are more than 50). The spec text still says "top 8"; the API returns 50.
@@ -200,7 +203,7 @@ curl "https://api.venice.ai/api/v1/billing/usage-analytics?lookback=7d" \
 
 ### Abort before calling inference if the account is empty
 
-`/billing/balance`'s `canConsume` ignores bundled credits and per-key limits, so gate on `accessPermitted` from `GET /api_keys/rate_limits` instead (works with the key you are about to use, including `INFERENCE` keys):
+`/billing/balance`'s `canConsume` ignores per-key limits and the account's API tier, so gate on `accessPermitted` from `GET /api_keys/rate_limits` instead (works with the key you are about to use, including `INFERENCE` keys):
 
 ```ts
 const { data } = await fetch(`${base}/api_keys/rate_limits`, { headers }).then(r => r.json())

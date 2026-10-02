@@ -75,7 +75,7 @@ print(resp.output_text)
 | `fallbacks` | Up to 10 `{model}` entries. Anthropic beta refusal fallback for Claude Fable 5; forwarded only on direct Anthropic routes. |
 | `venice_parameters` | Subset listed above. Example: `{"character_slug":"alan-watts","enable_web_search":"auto"}`. |
 
-The body is permissive: other fields (`instructions`, `metadata`, `parallel_tool_calls`, `n`, `stop`, `seed`, `prompt_cache_key`, `store`, `previous_response_id`, `background`, `text`, `user`) are accepted without error but **never reach inference**. Put system instructions in the `input` array instead of `instructions`.
+The body is permissive: other fields (`instructions`, `metadata`, `parallel_tool_calls`, `n`, `stop`, `seed`, `prompt_cache_key`, `store`, `previous_response_id`, `background`, `text`, `user`) are accepted without error but **never reach inference** (`user` still splits the error budget per value). Put system instructions in the `input` array instead of `instructions`.
 
 ### Input items
 
@@ -177,7 +177,7 @@ data: [DONE]
 | `404` | Unknown model |
 | `422` | Content-policy violation on an input image |
 | `429` | Rate limited |
-| `500` / `503` | Inference failed / model offline |
+| `500` / `503` | Inference failed (upstream overloads and timeouts also surface as `500` here, not `429` / `504`; retry with backoff) / model offline |
 
 The spec lists an `X-Balance-Remaining` header on x402 `200` responses, but the server does not currently set it — poll `GET /x402/balance/{walletAddress}` instead. See [`venice-errors`](../venice-errors/SKILL.md).
 
@@ -193,7 +193,7 @@ The spec lists an `X-Balance-Remaining` header on x402 `200` responses, but the 
 
 ## Gotchas
 
-- Unknown `character_slug` is **not** rejected here (chat returns `404`). The request runs without the character, without your `system` messages, and without the Venice system prompt or web search. Validate slugs with [`venice-characters`](../venice-characters/SKILL.md) first.
+- Unknown `character_slug` is **not** rejected here (chat returns `404`). The request runs without the character, without your `system` messages, and without the Venice system prompt or web search. Validate slugs first with `GET /characters/{slug}` ([`venice-characters`](../venice-characters/SKILL.md); Bearer key only — wallet callers can't, and should use `/chat/completions`, which returns `404` for unknown slugs).
 - Reasoning items in `input` are discarded; there is no cross-turn reasoning carry-over on this endpoint.
 - `tool_choice` objects must be `{"type":"function","function":{"name":...}}`; the flat `{"type":"function","name":...}` form fails validation.
 - Stateless: `previous_response_id` is silently ignored, so omitting history silently loses context.

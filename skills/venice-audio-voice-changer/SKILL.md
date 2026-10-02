@@ -130,7 +130,7 @@ curl https://api.venice.ai/api/v1/audio/voice-changer/complete \
   -d '{"model":"elevenlabs-voice-changer","queue_id":"..."}'
 ```
 
-Returns `{"success": true}` when the provider-held media is released. Safe to call more than once. Skip it if you retrieved with `delete_media_on_completion: true`.
+Returns `{"success": true}` once the provider-held media is released (`false` if the delete didn't go through). Safe to call more than once. Skip it if you retrieved with `delete_media_on_completion: true`.
 
 ## Full loop (TypeScript)
 
@@ -174,8 +174,8 @@ async function convert(path: string, voice: string) {
 |---|---|
 | `400` | Strict-body error; both or neither of `file` / `audio_url`; `audio_url` unreachable or unusable; source not in `accepted_audio_formats`, has a video track, or its length can't be read; voice rejected by the provider (at queue, or later on retrieve — then refunded); non-voice-changer model; unknown / foreign `queue_id` (`"Request ID is invalid."`). |
 | `401` | Authentication failed. |
-| `402` | Insufficient balance (checked against the price for the measured length). |
-| `403` | Key's privacy setting excludes the model, or region restriction. |
+| `402` | Insufficient balance (checked against the price for the measured length). Wallet callers above the $0.10 floor but below the price get the plain `{"error":"Insufficient USD or Diem balance…"}` body, not `PAYMENT_REQUIRED`. |
+| `403` | A `PRIVATE_ONLY` key calling an `anonymized` model, or region restriction. |
 | `404` | Model not found (today: every regular API key); on retrieve, media expired or already delivered. |
 | `413` | Uploaded file over 25 MB. |
 | `422` | Source longer than `max_source_audio_duration_seconds` (at queue, not charged); or, on retrieve, a provider content-policy rejection (refunded). |

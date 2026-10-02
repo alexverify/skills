@@ -23,7 +23,7 @@ Text-only: `input` must be a string or an array of strings. For images, run them
 curl https://api.venice.ai/api/v1/embeddings \
   -H "Authorization: Bearer $VENICE_API_KEY" \
   -H "Content-Type: application/json" \
-  -H "Accept-Encoding: gzip, br" \
+  --compressed \
   -d '{
     "model": "text-embedding-bge-m3",
     "input": "Why is the sky blue?"
@@ -51,7 +51,7 @@ The body is **strict** — unknown top-level fields (e.g. `input_type`, `task`, 
 | `input` | string \| string[] | **Required.** A non-empty string, or an array of 1–2048 strings. Token-ID arrays (`number[]` / `number[][]`) are rejected with `400` — see Gotchas. |
 | `encoding_format` | `"float"` \| `"base64"` | Default `"float"`. `"base64"` returns each vector as a base64-encoded string — a much smaller payload; decode client-side. |
 | `dimensions` | integer ≥ 1 | Optional. Requested output size. Only honoured by models whose `model_spec.supportsCustomDimensions` is `true`; it is forwarded as-is otherwise, and the provider may ignore or reject it. |
-| `user` | string | Accepted for OpenAI compatibility; Venice does not use it. |
+| `user` | string | Accepted for OpenAI compatibility; not used for inference, but it does split the error budget per value (see [`venice-errors`](../venice-errors/SKILL.md#error-budget)). |
 
 ### Input limits
 
@@ -61,7 +61,7 @@ The body is **strict** — unknown top-level fields (e.g. `input_type`, `task`, 
 
 ## Response headers & compression
 
-Send `Accept-Encoding: gzip, br`; the response comes back with `Content-Encoding` set. For large batches this matters — float vectors in JSON are big.
+Send `Accept-Encoding: gzip, br` (curl: `--compressed`; most HTTP clients decode automatically); the response comes back with `Content-Encoding` set. For large batches this matters — float vectors in JSON are big.
 
 Also returned:
 
