@@ -1,5 +1,5 @@
 {
-  "snapshot_date": "2026-09-30T23:03:46Z",
+  "snapshot_date": "2026-10-02T21:16:39Z",
   "source": {
     "models": "GET https://api.venice.ai/api/v1/models?type=text",
     "traits": "GET https://api.venice.ai/api/v1/models/traits?type=text"
@@ -611,6 +611,37 @@
       "deprecation_date": null
     },
     {
+      "id": "abliteration-abliterated-model-large-v2",
+      "tier": "M",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": false,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": false,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 1000000,
+      "max_completion_tokens": 32768,
+      "pricing_per_1m": {
+        "input_usd": 3,
+        "output_usd": 5
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
       "id": "aion-labs-aion-3-0",
       "tier": "M",
       "privacy": "anonymized",
@@ -701,7 +732,7 @@
       "beta": false,
       "offline": false,
       "region_restrictions": [],
-      "deprecation_date": null
+      "deprecation_date": "2026-10-30T00:00:00.000Z"
     },
     {
       "id": "claude-sonnet-4-6",
@@ -757,8 +788,8 @@
       "available_context_tokens": 1000000,
       "max_completion_tokens": 64000,
       "pricing_per_1m": {
-        "input_usd": 3,
-        "output_usd": 15
+        "input_usd": 2.5,
+        "output_usd": 12.5
       },
       "beta": false,
       "offline": false,
@@ -788,8 +819,8 @@
       "available_context_tokens": 1000000,
       "max_completion_tokens": 128000,
       "pricing_per_1m": {
-        "input_usd": 3.75,
-        "output_usd": 18.75
+        "input_usd": 2.5,
+        "output_usd": 12.5
       },
       "beta": false,
       "offline": false,
@@ -2409,6 +2440,37 @@
       "deprecation_date": null
     },
     {
+      "id": "mercury-2-5",
+      "tier": "S",
+      "privacy": "anonymized",
+      "capabilities": {
+        "supportsVision": false,
+        "supportsMultipleImages": false,
+        "supportsAudioInput": false,
+        "supportsVideoInput": false,
+        "supportsReasoning": true,
+        "supportsReasoningEffort": true,
+        "supportsFunctionCalling": true,
+        "optimizedForCode": false,
+        "supportsWebSearch": true,
+        "supportsXSearch": false,
+        "supportsResponseSchema": true,
+        "supportsTeeAttestation": false,
+        "supportsE2EE": false
+      },
+      "max_images": null,
+      "available_context_tokens": 260000,
+      "max_completion_tokens": 65536,
+      "pricing_per_1m": {
+        "input_usd": 0.25,
+        "output_usd": 0.9375
+      },
+      "beta": false,
+      "offline": false,
+      "region_restrictions": [],
+      "deprecation_date": null
+    },
+    {
       "id": "minimax-m25",
       "tier": "S",
       "privacy": "private",
@@ -3518,37 +3580,6 @@
       "pricing_per_1m": {
         "input_usd": 0.15,
         "output_usd": 0.6
-      },
-      "beta": false,
-      "offline": false,
-      "region_restrictions": [],
-      "deprecation_date": null
-    },
-    {
-      "id": "mercury-2-5",
-      "tier": "XS",
-      "privacy": "anonymized",
-      "capabilities": {
-        "supportsVision": false,
-        "supportsMultipleImages": false,
-        "supportsAudioInput": false,
-        "supportsVideoInput": false,
-        "supportsReasoning": true,
-        "supportsReasoningEffort": true,
-        "supportsFunctionCalling": true,
-        "optimizedForCode": false,
-        "supportsWebSearch": true,
-        "supportsXSearch": false,
-        "supportsResponseSchema": true,
-        "supportsTeeAttestation": false,
-        "supportsE2EE": false
-      },
-      "max_images": null,
-      "available_context_tokens": 260000,
-      "max_completion_tokens": 65536,
-      "pricing_per_1m": {
-        "input_usd": 0.04999999999999999,
-        "output_usd": 0.18749999999999994
       },
       "beta": false,
       "offline": false,

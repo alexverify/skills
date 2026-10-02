@@ -123,7 +123,7 @@ ffmpeg -i long.mp3 -f segment -segment_time 600 -c copy chunk_%03d.mp3
 |---|---|
 | `400` | Missing `model`, bad params (e.g. `response_format` not `json`/`text`), no `file` part (including a JSON body instead of multipart → `"No audio file provided"`), unsupported extension/MIME, or unrecognized binary signature. |
 | `401` | Authentication failed. |
-| `402` | Insufficient balance. Bearer → `INSUFFICIENT_BALANCE`; x402 → `PAYMENT_REQUIRED`. |
+| `402` | Insufficient balance. Bearer → `"Insufficient USD or Diem balance…"`; x402 → `PAYMENT_REQUIRED`. |
 | `403` | Key's privacy setting excludes the model, or region restriction. |
 | `404` | Unknown `model`. |
 | `413` | File larger than 25 MB (`{"code":"PAYLOAD_TOO_LARGE","error":"File exceeds the maximum allowed size of 25 MB."}`). |

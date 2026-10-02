@@ -121,7 +121,7 @@ curl https://api.venice.ai/api/v1/api_keys \
 | `MONTH` | Resets at 00:00 UTC on the 1st of each calendar month. |
 | `LIFETIME` | Never resets — a permanent cap on the key. |
 
-When a key hits its limit while the account still has funds, inference returns `402` with `API_KEY_USD_SPEND_LIMIT_EXCEEDED` or `API_KEY_DIEM_SPEND_LIMIT_EXCEEDED`.
+When a key hits its limit while the account still has funds, inference returns `402` with only an `error` string: `"API key USD spend limit exceeded. Your account may still have USD balance, but this API key has reached its configured USD spending limit."` (or the same with DIEM). There is no `code` field.
 
 ### `modelPrivacy`
 
@@ -301,7 +301,7 @@ if (!data.accessPermitted) alert('Key blocked — top up or raise its limit')
 |---|---|
 | `400` | Bad body (missing `apiKeyType`, `description` > 64 chars, malformed `expiresAt`, unknown field), 500 active keys reached, unknown/expired key id, or any Web3 verification failure. |
 | `401` | Invalid key, or a non-ADMIN key on an admin-only route (`"Admin API key required"`). |
-| `402` | No `Authorization` header (x402 auth challenge). On inference, `API_KEY_USD_SPEND_LIMIT_EXCEEDED` / `API_KEY_DIEM_SPEND_LIMIT_EXCEEDED` when the key's limit is used up. |
+| `402` | No `Authorization` header (x402 auth challenge). On inference, `"API key USD spend limit exceeded…"` / `"API key DIEM spend limit exceeded…"` when the key's limit is used up. |
 | `403` | On inference: the model is not permitted by the key's `modelPrivacy`. |
 | `429` | Exceeded 20 key creations/min, or the generic API error budget. |
 | `500` | Transient; retry. |

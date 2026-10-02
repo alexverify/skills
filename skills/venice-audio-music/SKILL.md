@@ -197,7 +197,7 @@ Each `GET /models?type=music` entry's `model_spec` exposes:
 |---|---|
 | `400` | Schema error (strict body), unsupported option for the model, bad `duration_seconds`, `lyrics_optimizer` + `lyrics_prompt`, voice-changer model on these endpoints, a provider-side validation failure reported on retrieve (refunded), or an unknown / foreign `queue_id` on retrieve/complete (`"Request ID is invalid."`). Voice errors include `details.supported_voices`. |
 | `401` | Authentication failed. |
-| `402` | Insufficient balance. Bearer → `INSUFFICIENT_BALANCE`; x402 → `PAYMENT_REQUIRED`. |
+| `402` | Insufficient balance. Bearer → `"Insufficient USD or Diem balance…"`; x402 → `PAYMENT_REQUIRED`. |
 | `403` | Key's privacy setting excludes the model, or region restriction. |
 | `404` | Unknown `model`; or on retrieve, media not found / expired / already deleted. |
 | `422` | Content policy violation (queue or retrieve). May include `suggested_prompt`. Charge refunded. |
@@ -209,7 +209,7 @@ See [`venice-errors`](../venice-errors/SKILL.md) for body shapes.
 
 ## Gotchas
 
-- **Quote before queue.** Queue charges up front (credits) or checks your x402 balance against the quote; gate the call on [`/billing/balance`](../venice-billing/SKILL.md) or [`/x402/balance/...`](../venice-x402/SKILL.md).
+- **Quote before queue.** Queue charges up front (credits) or checks your x402 balance against the quote. With an API key, compare the quote to `data.balances` from [`GET /api_keys/rate_limits`](../venice-api-keys/SKILL.md), which works with an INFERENCE key and is already capped at the key's spend limit; the request is charged to the first currency that covers the whole quote (DIEM, then bundled credits, then USD). With a wallet, use [`/x402/balance/...`](../venice-x402/SKILL.md).
 - Sending an unsupported option (`lyrics_prompt`, `voice`, `speed`, `language_code`, `loop`, `duration_seconds`, …) is a `400`, not a silent no-op. Build the body from `model_spec`.
 - Store `queue_id` **and** `model` — every later call needs both.
 - Media is ephemeral. Save the bytes on retrieve; after `complete` (or `delete_media_on_completion`) the audio is gone.

@@ -299,7 +299,7 @@ API keys whose `modelPrivacy` is `PRIVATE_ONLY` or `PRIVATE_TEXT` are refused (`
 | `400` | **Upstream TypeSafe 400/422** — a request that passed Venice's schema but TypeSafe rejected. Venice flattens FastAPI `detail` into `{ "error": "<loc>: <msg>; …" }` (up to 5 items, `body.` prefix stripped, echoed input never returned). If nothing is extractable: `"Invalid request parameters. For assistance, please reach out to support@venice.ai"`. | Read `error` — it names the field path and TypeSafe's message. |
 | `400` | `PAYMENT_HEADER_NOT_ACCEPTED` | Use `SIGN-IN-WITH-X`, not a payment header. |
 | `401` | Auth failed. | Check the key / SIWX header. |
-| `402` | No credentials (x402 discovery); insufficient balance (`INSUFFICIENT_BALANCE` for keys, structured `PAYMENT_REQUIRED` for x402); per-key USD/DIEM spend limit reached. | Top up — [`venice-x402`](../venice-x402/SKILL.md) / [`venice-billing`](../venice-billing/SKILL.md). |
+| `402` | No credentials (x402 discovery); insufficient balance (`"Insufficient USD or Diem balance…"` for keys, structured `PAYMENT_REQUIRED` for x402); per-key USD/DIEM spend limit reached. | Top up — [`venice-x402`](../venice-x402/SKILL.md) / [`venice-billing`](../venice-billing/SKILL.md). |
 | `403` | Key privacy setting forbids anonymized models; region or provider restriction; API access disabled for the account. | Use a key with `modelPrivacy: ALL`. |
 | `404` | Unknown `model`. | Send `jev-latest`. |
 | `400` | Non-JSON `Content-Type` → `"'Content-Type' must be 'application/json'"` (the spec lists `415`, but the server returns `400`). | `Content-Type: application/json`. |

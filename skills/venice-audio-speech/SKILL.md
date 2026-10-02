@@ -186,7 +186,7 @@ await fs.writeFile('hello.mp3', Buffer.from(await mp3.arrayBuffer()))
 |---|---|
 | `400` | Missing `model`, schema error (strict body, `input` > 4096 / empty / unspeakable), voice not valid for the model, unsupported `response_format`, bad cloning sample (`/audio/voices`), handle paired with a non-cloning model. |
 | `401` | Authentication failed. |
-| `402` | Insufficient balance. Bearer → `INSUFFICIENT_BALANCE`; x402 → `PAYMENT_REQUIRED` with top-up info. |
+| `402` | Insufficient balance. Bearer → `"Insufficient USD or Diem balance…"`; x402 → `PAYMENT_REQUIRED` with top-up info. |
 | `403` | Key's privacy setting excludes the model, region restriction, or a cloning model not open to your account on `/audio/voices`. |
 | `404` | Unknown `model`. |
 | `413` | `/audio/voices` sample over 25 MB. |

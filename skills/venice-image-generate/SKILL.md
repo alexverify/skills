@@ -264,7 +264,7 @@ await fs.writeFile(`out.${ext}`, buf)
 |---|---|
 | `400` | Bad params: missing `model`, schema violation, unknown field, prompt too long, `steps` above max (on models that use steps), invalid `style_preset`, unsupported `resolution`/`quality` for the model, `width`/`height` sent to `qwen-image`/`qwen-image-3`/`qwen-image-3-pro`, `variants` with `return_binary: true`, `style_references` on an unsupported model or over the cap, unreachable/corrupt reference image. |
 | `401` | Auth failed. |
-| `402` | No credentials at all (x402 payment-requirements body + `PAYMENT-REQUIRED` header), insufficient balance (Bearer: `INSUFFICIENT_BALANCE`; x402 wallet: `PAYMENT_REQUIRED` body + header), or the API key's USD/DIEM spend limit is reached. |
+| `402` | No credentials at all (x402 payment-requirements body + `PAYMENT-REQUIRED` header), insufficient balance (Bearer: `"Insufficient USD or Diem balance…"`; x402 wallet: `PAYMENT_REQUIRED` body + header), or the API key's USD/DIEM spend limit is reached. |
 | `403` | The API key's `modelPrivacy` setting blocks this model (e.g. a `PRIVATE_ONLY` key calling an `anonymized` model), or the model is unavailable in your region or restricted for your account. |
 | `404` | Model not found or retired (message names the replacement when there is one). On `/images/generations`, unknown IDs fall back to the default model instead. |
 | `422` | Reference image too large in pixels (over 7680×4320). |

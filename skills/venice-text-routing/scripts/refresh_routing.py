@@ -201,9 +201,9 @@ MATRIX_HEADER = (
 )
 
 
-def render_section(title: str, blurb: str, models: list[dict[str, Any]]) -> str:
+def render_section(title: str, blurb: str, models: list[dict[str, Any]], empty: str = "_No models in the current snapshot._") -> str:
     if not models:
-        return f"### {title}\n\n{blurb}\n\n_No models in the current snapshot._\n"
+        return f"### {title}\n\n{blurb}\n\n{empty}\n"
     rows = [MATRIX_HEADER]
     for m in sorted(models, key=lambda m: m["id"]):
         cells = (
@@ -229,12 +229,17 @@ def write_matrix(models: list[dict[str, Any]], traits: dict[str, str], snapshot_
             by_tier.setdefault(m["tier"], []).append(m)
 
     sections = [
-        ("XS — `< $0.20 / $0.40` per 1M", "Cheapest path; classification, intent extraction, simple summarization.", by_tier.get("XS", [])),
-        ("S — `$0.20–1 / $0.40–2` per 1M", "General chat, basic agents, light vision.", by_tier.get("S", [])),
-        ("M — `$1–4 / $2–10` per 1M", "Reasoning at moderate depth, strong code, multi-image vision.", by_tier.get("M", [])),
-        ("L — `$4–10 / $10–30` per 1M", "Long context (≥ 200K), heavy reasoning, complex tool use.", by_tier.get("L", [])),
-        ("Frontier — `≥ $10 / ≥ $30` per 1M", "Best-available. Resolve via trait `most_intelligent`.", by_tier.get("Frontier", [])),
-        ("TEE — hardware-attested", "Verify via `GET /api/v1/tee/attestation`.", tee_models),
+        ("XS — `< $0.20` input per 1M", "Cheapest path; classification, intent extraction, simple summarization.", by_tier.get("XS", [])),
+        ("S — `$0.20 – < $1` input per 1M", "General chat, basic agents, light vision.", by_tier.get("S", [])),
+        ("M — `$1 – < $4` input per 1M", "Reasoning at moderate depth, strong code, multi-image vision.", by_tier.get("M", [])),
+        ("L — `$4 – < $10` input per 1M", "Long context (≥ 200K), heavy reasoning, complex tool use.", by_tier.get("L", [])),
+        ("Frontier — `≥ $10` input per 1M", "Best-available. Resolve via trait `most_intelligent`.", by_tier.get("Frontier", [])),
+        (
+            "TEE — hardware-attested",
+            "Verify via `GET /api/v1/tee/attestation`.",
+            tee_models,
+            "_No TEE-only models in the current snapshot. TEE calls use the E2EE models below with the E2EE headers omitted._",
+        ),
         ("E2EE — end-to-end encrypted", "Requires ECDH (secp256k1) / HKDF / AES-256-GCM handshake. See [`venice-chat`](../venice-chat/SKILL.md).", e2ee_models),
     ]
 
@@ -265,7 +270,7 @@ def write_matrix(models: list[dict[str, Any]], traits: dict[str, str], snapshot_
         + ", `ctx` = `availableContextTokens`, `$/1M` = input/output USD per 1M tokens.\n\n"
         "`-` = not supported / not advertised.\n\n"
     )
-    body += "\n".join(render_section(title, blurb, ms) for title, blurb, ms in sections)
+    body += "\n".join(render_section(*section) for section in sections)
     body += (
         "\n## Sanity filters applied at routing time\n\n"
         "- Drop models with `model_spec.beta === true` unless your key has beta access.\n"

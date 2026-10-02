@@ -224,7 +224,7 @@ curl https://api.venice.ai/api/v1/image/background-remove \
 |---|---|
 | `400` | Bad params: schema violation or unknown field, invalid or corrupt image, image too small, multi-edit image over 8K, unknown/non-edit model (`Invalid model id`), prompt over the model limit, `aspect_ratio`/`resolution`/`quality` not supported by the model, too many input images, blocked URL, unsupported `Content-Type` (edit, upscale, background-remove). |
 | `401` | Auth failed. |
-| `402` | No credentials at all (x402 payment-requirements body + `PAYMENT-REQUIRED` header), insufficient balance (Bearer: `INSUFFICIENT_BALANCE`; x402 wallet: `PAYMENT_REQUIRED` body + header), or the API key's USD/DIEM spend limit is reached. |
+| `402` | No credentials at all (x402 payment-requirements body + `PAYMENT-REQUIRED` header), insufficient balance (Bearer: `"Insufficient USD or Diem balance…"`; x402 wallet: `PAYMENT_REQUIRED` body + header), or the API key's USD/DIEM spend limit is reached. |
 | `403` | The API key's `modelPrivacy` setting blocks the model. A `PRIVATE_ONLY` key can't use anonymized models, which includes most edit models and `bria-bg-remover`. |
 | `413` | Multipart file over 25 MB, or request body too large. |
 | `415` | `/image/multi-edit` only, when the body is empty. A wrong `Content-Type` on any route is a `400` (`"'Content-Type' must be 'application/json'"`) — send JSON or multipart. |
