@@ -12,7 +12,7 @@ Video is **asynchronous** — like audio music. Four live endpoints plus one ret
 | `POST /video/quote` | Price in USD (no charge, no job). No API key needed, except for upscale models. |
 | `POST /video/queue` | Validate, charge, and enqueue. Returns `queue_id` immediately. |
 | `POST /video/retrieve` | Poll status, download `video/mp4`, or receive the job's failure. |
-| `POST /video/complete` | Best-effort cleanup of the finished media. Prefer `delete_media_on_completion` on retrieve (see [step 4](#4-clean-up-with-videocomplete)). |
+| `POST /video/complete` | Cleanup of the finished media. Currently rejects `queue_id`s from `/video/queue`, so use `delete_media_on_completion` on retrieve instead (see [step 4](#4-clean-up-with-videocomplete)). |
 | `POST /video/transcriptions` | **Retired — always returns `410`.** See [below](#videotranscriptions-retired). |
 
 `/video/queue`, `/video/retrieve`, and `/video/complete` accept a Bearer API key or an x402 `SIGN-IN-WITH-X` wallet header (see [`venice-x402`](../venice-x402/SKILL.md)).
@@ -297,7 +297,7 @@ async function waitForVideo(model: string, queueId: string, downloadUrl?: string
 
 | Code | Meaning |
 |---|---|
-| `400` | Invalid params (unsupported field for this model, bad enum, missing `prompt` / `image_url` / `video_url`, over-limit arrays, blocked or unreadable media URL, corrupted image). On `/video/retrieve` (and currently `/video/complete`): `"Request ID is invalid."` for an unknown or expired `queue_id`. |
+| `400` | Invalid params (unsupported field for this model, bad enum, missing `prompt` / `image_url` / `video_url`, over-limit arrays, blocked or unreadable media URL, corrupted image). On `/video/retrieve`: `"Request ID is invalid."` for an unknown or expired `queue_id`. On `/video/complete`: the same message currently comes back for every `queue_id` issued by `/video/queue` — clean up with `delete_media_on_completion: true` instead (see [step 4](#4-clean-up-with-videocomplete)). |
 | `401` | Authentication failed. |
 | `402` | Insufficient balance or the API key's spend limit (checked on `/video/queue` before the charge). A wallet below the $0.10 floor gets the x402 `PAYMENT_REQUIRED` body and `PAYMENT-REQUIRED` header; a wallet above the floor but below this job's quote gets the plain `{"error":"Insufficient USD or Diem balance…"}` body with no header — top up via `/x402/top-up` and retry. |
 | `403` | Model unavailable in your region, not permitted by the API key's model-privacy setting, or an unauthenticated upscale quote. |
