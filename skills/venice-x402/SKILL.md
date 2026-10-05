@@ -98,7 +98,7 @@ const MAX_TOP_UP = 10_000_000n // $10 in base units: the user's per-top-up cap
 const signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`)
 
 // 1. Discover
-const { accepts } = await fetch(`${base}/x402/top-up`, { method: 'POST' }).then(r => r.json())
+const { accepts } = await fetch(`${base}/x402/top-up`, { method: 'POST', redirect: 'error' }).then(r => r.json())
 const rail = accepts.find((a: { network: string }) => a.network === 'eip155:8453')
 if (!rail || rail.asset.toLowerCase() !== BASE_USDC) throw new Error('Unexpected payment rail; refusing to pay')
 
@@ -123,6 +123,7 @@ const header = await createPaymentHeader(signer, 2, {
 const settle = await fetch(`${base}/x402/top-up`, {
   method: 'POST',
   headers: { 'PAYMENT-SIGNATURE': header },
+  redirect: 'error',
 })
 if (!settle.ok) throw new Error(`Top-up failed: ${settle.status} ${await settle.text()}`)
 const { data } = await settle.json()
